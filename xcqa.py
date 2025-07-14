@@ -275,11 +275,191 @@ class XCQA:
             time_end = time.time()
             if self.logging:
                 print(f"Time taken for third level query: {time_end - time_start:.2f} seconds")
-                
+        # =============================================== up query =========================================================
+        elif query.query_type == 'up':
+            query1 = query.query[0]
+            anchor1 = query1[0]
+            relation1 = query1[1][0]
+            query2 = query.query[1]
+            anchor2 = query2[0]
+            relation2 = query2[1][0]
+            relation3 = query.query[2]
+            # first similar like 2u, then we need to do another projection for each final entity
+            first_branch_answers = None
+            time_start = time.time()
+            first_branch_answers = self.atom_execution(anchor1, relation1, coalition[0], k)
+            first_branch_answers['path'] = str(anchor1) + f'--{relation1}-->'
+            time_end = time.time()
+            if self.logging:
+                print(f"Time taken for first level query: {time_end - time_start:.2f} seconds")
+            second_branch_answers = None
+            time_start = time.time()
+            second_branch_answers = self.atom_execution(anchor2, relation2, coalition[1], k)
+            second_branch_answers['path'] = str(anchor2) + f'--{relation2}-->'
+            if t_conorm == 'min':
+                union_answers = pd.merge(first_branch_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                union_answers.fillna(0, inplace=True)
+                union_answers['score'] = union_answers[['score_1', 'score_2']].min(axis=1)
+                union_answers = union_answers.drop(columns=['score_1', 'score_2'])
+            elif t_conorm == 'prod':
+                union_answers = pd.merge(first_branch_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                union_answers.fillna(0, inplace=True)
+                union_answers['score'] = union_answers[['score_1', 'score_2']].sum(axis=1) - union_answers[['score_1', 'score_2']].prod(axis=1)
+                union_answers = union_answers.drop(columns=['score_1', 'score_2'])
+            elif t_conorm == 'max':
+                union_answers = pd.merge(first_branch_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                union_answers.fillna(0, inplace=True)
+                union_answers['score'] = union_answers[['score_1', 'score_2']].max(axis=1)
+                union_answers = union_answers.drop(columns=['score_1', 'score_2'])
+            union_answers['path'] = (
+                union_answers['path_1'].fillna('').astype(str) + "\n" +
+                union_answers['path_2'].fillna('').astype(str)
+            )
+            union_answers = union_answers.drop(columns=['path_1', 'path_2'])
+            time_end = time.time()
+            if self.logging:
+                print(f"Time taken for second level query: {time_end - time_start:.2f} seconds")
+            time_start = time.time()
+            final_answers = None
+            for answer_idx, row in union_answers.iterrows():
+                third_level_answers = self.atom_execution(answer_idx, relation3, coalition[2], k)
+                if t_norm == 'prod':  
+                    third_level_answers['score'] = third_level_answers['score'] * row['score']
+                elif t_norm == 'min':
+                    third_level_answers['score'] = third_level_answers['score'].apply(lambda x: min(x, row['score']))
+                third_level_answers['path'] = row['path'] + str(answer_idx) + f'--{relation3}-->'
+                if final_answers is None:
+                    final_answers = third_level_answers
+                else:
+                    final_answers = pd.concat([final_answers, third_level_answers], axis=0)
+            time_end = time.time()
+            if self.logging:
+                print(f"Time taken for third level query: {time_end - time_start:.2f} seconds")
+        # =============================================== ip query =========================================================
+        elif query.query_type == 'ip':
+            query1 = query.query[0]
+            anchor1 = query1[0]
+            relation1 = query1[1][0]
+            query2 = query.query[1]
+            anchor2 = query2[0]
+            relation2 = query2[1][0]
+            relation3 = query.query[2]
+            # first similar like 2i, then we need to do another intersection for each final entity
+            first_branch_answers = None
+            time_start = time.time()
+            first_branch_answers = self.atom_execution(anchor1, relation1, coalition[0], k)
+            first_branch_answers['path'] = str(anchor1) + f'--{relation1}-->'
+            time_end = time.time()
+            if self.logging:
+                print(f"Time taken for first level query: {time_end - time_start:.2f} seconds")
+            second_branch_answers = None
+            time_start = time.time()
+            second_branch_answers = self.atom_execution(anchor2, relation2, coalition[1], k)
+            second_branch_answers['path'] = str(anchor2) + f'--{relation2}-->'
+            if t_norm == 'min':
+                intersection_answers = pd.merge(first_branch_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                intersection_answers.fillna(0, inplace=True)
+                intersection_answers['score'] = intersection_answers[['score_1', 'score_2']].min(axis=1)
+                intersection_answers = intersection_answers.drop(columns=['score_1', 'score_2'])
+            elif t_norm == 'prod':
+                intersection_answers = pd.merge(first_branch_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                intersection_answers.fillna(0, inplace=True)
+                intersection_answers['score'] = intersection_answers[['score_1', 'score_2']].prod(axis=1)
+                intersection_answers = intersection_answers.drop(columns=['score_1', 'score_2'])
+            elif t_norm == 'max':
+                intersection_answers = pd.merge(first_branch_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                intersection_answers.fillna(0, inplace=True)
+                intersection_answers['score'] = intersection_answers[['score_1', 'score_2']].max(axis=1)
+                intersection_answers = intersection_answers.drop(columns=['score_1', 'score_2'])
+            intersection_answers['path'] = (
+                intersection_answers['path_1'].fillna('').astype(str) + "\n" +
+                intersection_answers['path_2'].fillna('').astype(str)
+            )
+            intersection_answers = intersection_answers.drop(columns=['path_1', 'path_2'])
+            time_end = time.time()
+            if self.logging:
+                print(f"Time taken for second level query: {time_end - time_start:.2f} seconds")
+            time_start = time.time()
+            final_answers = None
+            for answer_idx, row in intersection_answers.iterrows():
+                third_level_answers = self.atom_execution(answer_idx, relation3, coalition[2], k)
+                if t_norm == 'prod':  
+                    third_level_answers['score'] = third_level_answers['score'] * row['score']
+                elif t_norm == 'min':
+                    third_level_answers['score'] = third_level_answers['score'].apply(lambda x: min(x, row['score']))
+                third_level_answers['path'] = row['path'] + str(answer_idx) + f'--{relation3}-->'
+                if final_answers is None:
+                    final_answers = third_level_answers
+                else:
+                    final_answers = pd.concat([final_answers, third_level_answers], axis=0)
+            time_end = time.time()
+            if self.logging:
+                print(f"Time taken for third level query: {time_end - time_start:.2f} seconds")
+        # =============================================== pi query =========================================================
+        elif query.query_type == 'pi':
+            branch1 = query.query[0]
+            branch2 = query.query[1]
+            anchor1 = branch1[0]
+            relation1 = branch1[1][0]
+            relation2 = branch1[1][1]
+            anchor2 = branch2[0]
+            relation3 = branch2[1][0]
+            
+            first_branch_first_level_answers = None
+            time_start = time.time()
+            first_branch_first_level_answers = self.atom_execution(anchor1, relation1, coalition[0], k)
+            first_branch_first_level_answers['path'] = str(anchor1) + f'--{relation1}-->'
+            time_end = time.time()
+            if self.logging:
+                print(f"Time taken for first level query: {time_end - time_start:.2f} seconds")
+            first_branch_second_level_answers = None
+            time_start = time.time()
+            for answer_idx, row in first_branch_first_level_answers.iterrows():
+                first_branch_second_level_answer = self.atom_execution(answer_idx, relation2, coalition[1], k)
+                if t_norm == 'prod':  
+                    first_branch_second_level_answer['score'] = first_branch_second_level_answer['score'] * row['score']
+                elif t_norm == 'min':
+                    first_branch_second_level_answer['score'] = first_branch_second_level_answer['score'].apply(lambda x: min(x, row['score']))
+                first_branch_second_level_answer['path'] = row['path'] + str(answer_idx) + f'--{relation2}-->'
+                if first_branch_second_level_answers is None:
+                    first_branch_second_level_answers = first_branch_second_level_answer
+                else:
+                    first_branch_second_level_answers = pd.concat([first_branch_second_level_answers, first_branch_second_level_answer], axis=0)
+            time_end = time.time()
+            if self.logging:
+                print(f"Time taken for second level query: {time_end - time_start:.2f} seconds")
+            second_branch_answers = None
+            time_start = time.time()
+            second_branch_answers = self.atom_execution(anchor2, relation3, coalition[2], k)
+            second_branch_answers['path'] = str(anchor2) + f'--{relation3}-->'
+            if t_norm == 'min':
+                final_answers = pd.merge(first_branch_second_level_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                final_answers.fillna(0, inplace=True)
+                final_answers['score'] = final_answers[['score_1', 'score_2']].min(axis=1)
+                final_answers = final_answers.drop(columns=['score_1', 'score_2'])
+            elif t_norm == 'prod':
+                final_answers = pd.merge(first_branch_second_level_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                final_answers.fillna(0, inplace=True)
+                final_answers['score'] = final_answers[['score_1', 'score_2']].prod(axis=1)
+                final_answers = final_answers.drop(columns=['score_1', 'score_2'])
+            elif t_norm == 'max':
+                final_answers = pd.merge(first_branch_second_level_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                final_answers.fillna(0, inplace=True)
+                final_answers['score'] = final_answers[['score_1', 'score_2']].max(axis=1)
+                final_answers = final_answers.drop(columns=['score_1', 'score_2'])
+            final_answers['path'] = (
+                final_answers['path_1'].fillna('').astype(str) + "\n" +
+                final_answers['path_2'].fillna('').astype(str) + "\n"
+            )
+            final_answers = final_answers.drop(columns=['path_1', 'path_2'])
+            time_end = time.time()
+            if self.logging:
+                print(f"Time taken for third level query: {time_end - time_start:.2f} seconds")
+            
         else:
             raise ValueError(f"Unsupported query type: {query.query_type}. Only '2p' queries are supported.")
         final_answers = final_answers.sort_values(by='score', ascending=False)
-        
+
         # if we have duplicate answers, we need to keep only the one with the highest score
         # as the final_answers dataframe is already sorted by score, we can just keep the first occurrence of each index which means that we keep the highest score
         final_answers = final_answers[~final_answers.index.duplicated(keep='first')]

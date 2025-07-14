@@ -43,8 +43,16 @@ def shapley_value(xcqa: XCQA, query: Query, atom_idx: int, easy_answers: list,
         num_atoms = 2
     elif query.query_type == '2u':
         num_atoms = 2
+    elif query.query_type == '3i':
+        num_atoms = 3
+    elif query.query_type == 'pi':
+        num_atoms = 3
+    elif query.query_type == 'up':
+        num_atoms = 3
+    elif query.query_type == 'ip':
+        num_atoms = 3
     else:
-        raise ValueError(f"Unsupported query type: {query.query_type}. Only '2p' queries are supported.")
+        raise ValueError(f"Unsupported query type: {query.query_type}.")
 
     shapley_value = 0.0
     

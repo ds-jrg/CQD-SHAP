@@ -116,3 +116,50 @@ def human_readable(query: Query, dataset: Dataset):
         elif query.query_type == '3i':
             print(f"V1\tAND\tV2\tAND\tV3\t-->\t?")
         print(f"\nAnswer Set (?): \n{answers_titles}")
+    elif query.query_type == 'up' or query.query_type == 'ip':
+        query1 = query.query[0]
+        anchor1 = query1[0]
+        relation1 = query1[1][0]
+        query2 = query.query[1]
+        anchor2 = query2[0]
+        relation2 = query2[1][0]
+        relation3 = query.query[2]
+        anchor1_name = dataset.get_node_by_id(anchor1)
+        anchor2_name = dataset.get_node_by_id(anchor2)
+        rel1_name = dataset.get_relation_by_id(relation1)
+        rel2_name = dataset.get_relation_by_id(relation2)
+        rel3_name = dataset.get_relation_by_id(relation3)
+        anchor1_title = dataset.get_title_by_node(anchor1_name)
+        anchor2_title = dataset.get_title_by_node(anchor2_name)
+        answers_titles = [dataset.get_title_by_node(dataset.get_node_by_id(a)) for a in query.answer]
+        print(f"Query:\n{anchor1_title}\t--{rel1_name}-->\tV1")
+        print(f"{anchor2_title}\t--{rel2_name}-->\tV2")
+        if query.query_type == 'up':
+            print(f"V1\tOR\tV2\t-->\tV3")
+        elif query.query_type == 'ip':
+            print(f"V1\tAND\tV2\t-->\tV3")
+        print(f"V3\t--{rel3_name}-->\t?")
+        print(f"\nAnswer Set (?): \n{answers_titles}")
+    elif query.query_type == 'pi':
+        branch1 = query.query[0]
+        branch2 = query.query[1]
+        anchor1 = branch1[0]
+        relation1 = branch1[1][0]
+        relation2 = branch1[1][1]
+        anchor2 = branch2[0]
+        relation3 = branch2[1][0]
+        anchor1_name = dataset.get_node_by_id(anchor1)
+        anchor2_name = dataset.get_node_by_id(anchor2)
+        rel1_name = dataset.get_relation_by_id(relation1)
+        rel2_name = dataset.get_relation_by_id(relation2)
+        rel3_name = dataset.get_relation_by_id(relation3)
+        anchor1_title = dataset.get_title_by_node(anchor1_name)
+        anchor2_title = dataset.get_title_by_node(anchor2_name)
+        answers_titles = [dataset.get_title_by_node(dataset.get_node_by_id(a)) for a in query.answer]
+        print(f"Query:\n{anchor1_title}\t--{rel1_name}-->\tV1")
+        print(f"V1\t--{rel2_name}-->\tV2")
+        print(f"{anchor2_title}\t--{rel3_name}-->\tV3")
+        print(f"V2\tAND\tV3\t-->\t?")
+        print(f"\nAnswer Set (?): \n{answers_titles}")
+        
+        
