@@ -212,10 +212,74 @@ class XCQA:
             if self.logging:
                 print(f"Time taken for second level query: {time_end - start_time:.2f} seconds")
                 
+        # =============================================== 3i query =========================================================
+        elif query.query_type == '3i':
+            query1 = query.get_query()[0]
+            query2 = query.get_query()[1]
+            query3 = query.get_query()[2]
+            anchor1 = query1[0]
+            relation1 = query1[1][0]
+            anchor2 = query2[0]
+            relation2 = query2[1][0]
+            anchor3 = query3[0]
+            relation3 = query3[1][0]
+
+            first_branch_answers = None
+
+            time_start = time.time()
+            first_branch_answers = self.atom_execution(anchor1, relation1, coalition[0], k)
+            first_branch_answers['path'] = str(anchor1) + f'--{relation1}-->'
+            time_end = time.time()
+
+            if self.logging:
+                print(f"Time taken for first level query: {time_end - time_start:.2f} seconds")
+                
+            second_branch_answers = None
+
+            time_start = time.time()
+            second_branch_answers = self.atom_execution(anchor2, relation2, coalition[1], k)
+            second_branch_answers['path'] = str(anchor2) + f'--{relation2}-->'
+            time_end = time.time()
+            if self.logging:
+                print(f"Time taken for second level query: {time_end - time_start:.2f} seconds")
+            
+            time_start = time.time()
+            third_branch_answers = None
+            third_branch_answers = self.atom_execution(anchor3, relation3, coalition[2], k)
+            third_branch_answers['path'] = str(anchor3) + f'--{relation3}-->'
+
+            if t_norm == 'min':
+                final_answers = pd.merge(first_branch_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                final_answers = pd.merge(final_answers, third_branch_answers, left_index=True, right_index=True, how='outer')
+                final_answers.fillna(0, inplace=True)
+                final_answers['score'] = final_answers[['score_1', 'score_2', 'score']].min(axis=1)
+                final_answers = final_answers.drop(columns=['score_1', 'score_2'])
+            elif t_norm == 'prod':
+                final_answers = pd.merge(first_branch_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                final_answers = pd.merge(final_answers, third_branch_answers, left_index=True, right_index=True, how='outer')
+                final_answers.fillna(0, inplace=True)
+                final_answers['score'] = final_answers[['score_1', 'score_2', 'score']].prod(axis=1)
+                final_answers = final_answers.drop(columns=['score_1', 'score_2'])
+            elif t_norm == 'max':
+                final_answers = pd.merge(first_branch_answers, second_branch_answers, left_index=True, right_index=True, how='outer', suffixes=('_1', '_2'))
+                final_answers = pd.merge(final_answers, third_branch_answers, left_index=True, right_index=True, how='outer')
+                final_answers.fillna(0, inplace=True)
+                final_answers['score'] = final_answers[['score_1', 'score_2', 'score']].max(axis=1)
+                final_answers = final_answers.drop(columns=['score_1', 'score_2'])
+            final_answers['path'] = (
+                final_answers['path_1'].fillna('').astype(str) + "\n" +
+                final_answers['path_2'].fillna('').astype(str) + "\n" +
+                final_answers['path'].fillna('').astype(str)
+            )
+            final_answers = final_answers.drop(columns=['path_1', 'path_2'])
+            time_end = time.time()
+            if self.logging:
+                print(f"Time taken for third level query: {time_end - time_start:.2f} seconds")
+                
         else:
             raise ValueError(f"Unsupported query type: {query.query_type}. Only '2p' queries are supported.")
         final_answers = final_answers.sort_values(by='score', ascending=False)
-
+        
         # if we have duplicate answers, we need to keep only the one with the highest score
         # as the final_answers dataframe is already sorted by score, we can just keep the first occurrence of each index which means that we keep the highest score
         final_answers = final_answers[~final_answers.index.duplicated(keep='first')]
@@ -223,19 +287,11 @@ class XCQA:
         # the output should be a dataframe of scores for each possible node in the graph
         df = pd.DataFrame(index=self.dataset.id2node.keys(), columns=['score', 'path'])
         df['score'] = 0.0
-        for answer in final_answers.index:
-            df.loc[answer, 'score'] = final_answers.loc[answer, 'score']
-            if 'path' in final_answers.columns:
-                # if the path column exists, we can add it to the dataframe
-                df.loc[answer, 'path'] = final_answers.loc[answer, 'path']
-            elif 'path_1' in final_answers.columns and 'path_2' in final_answers.columns:
-                # if the path_1 and path_2 columns exist, we can concatenate them to create the path
-                df.loc[answer, 'path'] = str(final_answers.loc[answer, 'path_1']) + "\n" + str(final_answers.loc[answer, 'path_2'])
-            else:
-                df.loc[answer, 'path'] = None
+        df = df[~df.index.isin(final_answers.index)]
+        df = pd.concat([final_answers, df])
         # shuffle the data to have a random order of answers and a fair measurement of performance
         # df = df.sample(frac=1)
         # sort by index and score at the same time to make sure that the order is consistent
-        df.index.name = 'entity_id'
-        df = df.sort_values(by=['score', 'entity_id'], ascending=[False, True])
+        # df.index.name = 'entity_id'
+        # df = df.sort_values(by=['score', 'entity_id'], ascending=[False, True])
         return df

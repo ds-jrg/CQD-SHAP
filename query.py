@@ -85,7 +85,7 @@ def human_readable(query: Query, dataset: Dataset):
             print(f"Query:\n{anchor_title}\t--{rel1_name}-->\tV")
             print(f"V\t--{rel2_name}-->\t?")
         print(f"\nAnswer Set (?): \n{answers_titles}")
-    elif query.query_type == '2u' or query.query_type == '2i':
+    elif query.query_type == '2u' or query.query_type == '2i' or query.query_type == '3i':
         query1 = query.query[0]
         query2 = query.query[1]
         anchor1 = query1[0]
@@ -101,8 +101,18 @@ def human_readable(query: Query, dataset: Dataset):
         answers_titles = [dataset.get_title_by_node(dataset.get_node_by_id(a)) for a in query.answer]
         print(f"Query:\n{anchor1_title}\t--{rel1_name}-->\tV1")
         print(f"{anchor2_title}\t--{rel2_name}-->\tV2")
+        if query.query_type == '3i':
+            query3 = query.query[2]
+            anchor3 = query3[0]
+            relation3 = query3[1][0]
+            anchor3_name = dataset.get_node_by_id(anchor3)
+            rel3_name = dataset.get_relation_by_id(relation3)
+            anchor3_title = dataset.get_title_by_node(anchor3_name)
+            print(f"{anchor3_title}\t--{rel3_name}-->\tV3")
         if query.query_type == '2u':
             print(f"V1\tOR\tV2\t-->\t?")
         elif query.query_type == '2i':
             print(f"V1\tAND\tV2\t-->\t?")
+        elif query.query_type == '3i':
+            print(f"V1\tAND\tV2\tAND\tV3\t-->\t?")
         print(f"\nAnswer Set (?): \n{answers_titles}")
