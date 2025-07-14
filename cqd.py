@@ -33,7 +33,7 @@ def create_cqd_file(queries: list, output_file: str = 'data/FB15k-237/FB15k-237_
         pickle.dump(chains, f)
         
 
-def get_cach_prediction(predictions_df: pd.DataFrame, entity: int, relation: int):
+def get_cache_prediction(predictions_df: pd.DataFrame, entity: int, relation: int):
     """
     Get the prediction for a specific entity and relation from the predictions DataFrame.
     
@@ -70,7 +70,7 @@ def cqd_query(query: Query, sample_path: str = 'data/FB15k-237/FB15k-237_test_ha
             raise ValueError("Entity or relation not found in the dataset.")
         
         # Get cached predictions
-        predictions = get_cach_prediction(cqd_cache, entity, relation)
+        predictions = get_cache_prediction(cqd_cache, entity, relation)
         
         # Get the top k answers
         top_k_answers = predictions.head(k)

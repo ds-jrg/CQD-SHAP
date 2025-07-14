@@ -1,20 +1,18 @@
 from query import Query
-from xcqa import query_execution
+from xcqa import XCQA
 import pandas as pd
 from symbolic import SymbolicReasoning
 from graph import Dataset
 import math
 
-def value_function(query: Query, easy_answers: list, symbolic: SymbolicReasoning,
-                   dataset: Dataset, target_entity: int, qoi: str = 'rank', k: int = 10,
-                   coalition: list = None, t_norm: str = 'prod', t_conorm: str = 'min',
-                   logging: bool = True, cqd_cache: pd.DataFrame = None, inner_cache: dict = None):
+def value_function(xcqa: XCQA, query: Query, easy_answers: list, target_entity: int, qoi: str = 'rank', k: int = 10,
+                   coalition: list = None, t_norm: str = 'prod', t_conorm: str = 'min'):
     
     if sum(coalition) == 0:
         # this is the requirement of shapley values definition
         return 0
     else:
-        result = query_execution(query, symbolic, dataset, k=k, coalition=coalition, t_norm=t_norm, t_conorm=t_conorm, logging=logging, cqd_cache=cqd_cache, inner_cache=inner_cache)
+        result = xcqa.query_execution(query, k=k, coalition=coalition, t_norm=t_norm, t_conorm=t_conorm)
         
         # remove easy answers from the result
         result = result[~result.index.isin(easy_answers)]
@@ -34,9 +32,8 @@ def value_function(query: Query, easy_answers: list, symbolic: SymbolicReasoning
         return value
     
 
-def shapley_value(query: Query, atom_idx: int, easy_answers: list, symbolic: SymbolicReasoning, dataset: Dataset, 
-                  target_entity: int, qoi: str = 'rank', k: int = 10, t_norm: str = 'prod', t_conorm: str = 'min',
-                  logging: bool = True, cqd_cache: pd.DataFrame = None, inner_cache: dict = None):
+def shapley_value(xcqa: XCQA, query: Query, atom_idx: int, easy_answers: list,
+                  target_entity: int, qoi: str = 'rank', k: int = 10, t_norm: str = 'prod', t_conorm: str = 'min'):
     num_atoms = 0
     if query.query_type == '2p':
         num_atoms = 2
@@ -63,28 +60,28 @@ def shapley_value(query: Query, atom_idx: int, easy_answers: list, symbolic: Sym
             else:
                 coalition_mask[idx] = coalition[counter]
                 counter += 1
-        if logging:
+        if xcqa.logging:
             print(f"Coalition: {coalition_mask}, Atom Index: {atom_idx}")
 
         # calculate the weight term (|S|! (p-|S|-1)! \ p!
         weight = (math.factorial(sum(coalition)) * math.factorial(num_atoms - sum(coalition) - 1)) / math.factorial(num_atoms)
         
         # calculate the value function for the current coalition
-        value = value_function(query, easy_answers, symbolic=symbolic, dataset=dataset, target_entity=target_entity, qoi=qoi, k=k, coalition=coalition_mask, t_norm=t_norm, t_conorm=t_conorm, logging=logging, cqd_cache=cqd_cache, inner_cache=inner_cache)
+        value = value_function(xcqa, query, easy_answers, target_entity, qoi=qoi, k=k, coalition=coalition_mask, t_norm=t_norm, t_conorm=t_conorm)
         
         # calculate the contribution of the current coalition when the atom is added
         added_coalition_mask = coalition_mask.copy()
         added_coalition_mask[atom_idx] = 1
-        added_value = value_function(query, easy_answers, symbolic=symbolic, dataset=dataset, target_entity=target_entity, qoi=qoi, k=k, coalition=added_coalition_mask, t_norm=t_norm, t_conorm=t_conorm, logging=logging, cqd_cache=cqd_cache, inner_cache=inner_cache)
+        added_value = value_function(xcqa, query, easy_answers, target_entity, qoi=qoi, k=k, coalition=added_coalition_mask, t_norm=t_norm, t_conorm=t_conorm)
         
         # compute the difference
         contribution = added_value - value
-        if logging:
+        if xcqa.logging:
             print(f"Coalition: {coalition_mask}, Contribution: {contribution} (before adding atom: {value}, after adding atom: {added_value}), weight: {weight})")
             
         # add the contribution to the shapley value
         shapley_value += contribution * weight
         
-    if logging:
+    if xcqa.logging:
         print(f"Shapley value for atom {atom_idx}: {shapley_value}")
     return shapley_value
