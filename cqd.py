@@ -33,7 +33,7 @@ def create_cqd_file(queries: list, output_file: str = 'data/FB15k-237/FB15k-237_
         pickle.dump(chains, f)
         
 
-def get_cache_prediction(predictions_df: pd.DataFrame, entity: int, relation: int):
+def get_cache_prediction_old(predictions_df: pd.DataFrame, entity: int, relation: int):
     """
     Get the prediction for a specific entity and relation from the predictions DataFrame.
     
@@ -58,6 +58,29 @@ def get_cache_prediction(predictions_df: pd.DataFrame, entity: int, relation: in
     
     return predictions
 
+def get_df_cache_prediction(predictions_df: pd.DataFrame, entity: int, relation: int):
+    if predictions_df.index.names[:2] == ['entity_id', 'relation_id']:
+        try:
+            row = predictions_df.loc[(entity, relation)]
+        except KeyError:
+            return [], []
+    else:
+        filtered_df = predictions_df[(predictions_df['entity_id']==entity) & (predictions_df['relation_id']==relation)]
+        if filtered_df.empty:
+            return [], []
+        row = filtered_df.iloc[0]
+    predicted_entities = row['top_k_entities']
+    scores = row['top_k_scores']
+    predictions = pd.DataFrame({'score': scores}, index=predicted_entities)
+    return predictions.sort_values(by='score', ascending=False)
+
+def get_dict_cache_prediction(cache, entity, relation):
+    try:
+        entities, scores = cache[(entity, relation)]
+    except KeyError:
+        return [], []
+    predictions = pd.DataFrame({'score': scores}, index=entities)
+    return predictions.sort_values(by='score', ascending=False)
 
 def cqd_query(query: Query, sample_path: str = 'data/FB15k-237/FB15k-237_test_hard_sample.pkl', result_path: str = 'scores.json', k: int = 5, cqd_cache: pd.DataFrame = None):
     
@@ -70,7 +93,10 @@ def cqd_query(query: Query, sample_path: str = 'data/FB15k-237/FB15k-237_test_ha
             raise ValueError("Entity or relation not found in the dataset.")
         
         # Get cached predictions
-        predictions = get_cache_prediction(cqd_cache, entity, relation)
+        if type(cqd_cache) is pd.DataFrame:
+            predictions = get_df_cache_prediction(cqd_cache, entity, relation)
+        elif type(cqd_cache) is dict:
+            predictions = get_dict_cache_prediction(cqd_cache, entity, relation)
         
         # Get the top k answers
         top_k_answers = predictions.head(k)

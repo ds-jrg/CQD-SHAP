@@ -5,10 +5,13 @@ from symbolic import SymbolicReasoning
 from graph import Dataset
 import math
 
+import numpy as np
+np.random.seed(42)
+
 def value_function(xcqa: XCQA, query: Query, easy_answers: list, target_entity: int, qoi: str = 'rank', k: int = 10,
                    coalition: list = None, t_norm: str = 'prod', t_conorm: str = 'min'):
     
-    if sum(coalition) == 0:
+    if sum(coalition) == -1:
         # this is the requirement of shapley values definition
         return 0
     else:

@@ -4,11 +4,13 @@ from graph import Dataset, Graph
 import time, json
 from query import Query, QueryDataset, human_readable
 from symbolic import SymbolicReasoning
-from cqd import cqd_query, get_cache_prediction
 import pandas as pd
 from xcqa import XCQA
 from shapley import shapley_value
 from shapley import value_function
+import numpy as np
+
+np.random.seed(42)
 
 def get_num_atoms(query_type):
     """Get the number of atoms for a given query type."""
@@ -20,12 +22,13 @@ def get_num_atoms(query_type):
         raise ValueError(f"Unsupported query type: {query_type}.")
     return atom_mapping[query_type]
 
-def get_query_file_paths(data_dir, query_type, hard=False):
+def get_query_file_paths(data_dir, query_type, hard=False, split='test'):
     """Get file paths for query data based on query type."""
+    prefix = split + '_ans_'
     file_mapping = {
-        '2p': 'test_ans_2c', '3p': 'test_ans_3c', '2i': 'test_ans_2i', 
-        '2u': 'test_ans_2u', '3i': 'test_ans_3i', 'pi': 'test_ans_ci',
-        'ip': 'test_ans_ic', 'up': 'test_ans_uc'
+        '2p': prefix + '2c', '3p': prefix + '3c', '2i': prefix + '2i', 
+        '2u': prefix + '2u', '3i': prefix + '3i', 'pi': prefix + 'ci',
+        'ip': prefix + 'ic', 'up': prefix + 'uc'
     }
     
     if query_type not in file_mapping:
@@ -35,7 +38,7 @@ def get_query_file_paths(data_dir, query_type, hard=False):
     filename = f"{file_mapping[query_type]}{suffix}.pkl"
     return f"{data_dir}/{filename}"
 
-def average_shapley_value(xcqa, query, easy_answers, qoi='rank', k=10, mode='non_zero', t_norm='prod', t_conorm='prod'):
+def prediction_driven(xcqa, query, easy_answers, qoi='rank', k=10, mode='non_zero', t_norm='prod', t_conorm='prod'):
     num_atoms = get_num_atoms(query.query_type)
 
     cqd_coalition = [1] * num_atoms
@@ -57,7 +60,8 @@ def average_shapley_value(xcqa, query, easy_answers, qoi='rank', k=10, mode='non
 
     for target_entity in target_entities:
         for atom_idx in range(num_atoms):
-            sv = shapley_value(xcqa, query, atom_idx=atom_idx, easy_answers=easy_answers, target_entity=target_entity, qoi=qoi, k=k, t_norm=t_norm, t_conorm=t_conorm)
+            remaining_answers = [a for a in query.get_answer() if a != target_entity] + easy_answers
+            sv = shapley_value(xcqa, query, atom_idx=atom_idx, easy_answers=remaining_answers, target_entity=target_entity, qoi=qoi, k=k, t_norm=t_norm, t_conorm=t_conorm)
             shapley_values[atom_idx].append(sv)
 
     average_shapley_values = {}
@@ -66,7 +70,27 @@ def average_shapley_value(xcqa, query, easy_answers, qoi='rank', k=10, mode='non
 
     return average_shapley_values
 
-def average_shapley_values_for_query_type(xcqa, query_dataset, query_dataset_hard, query_type, qoi='rank', k=10, mode='non_zero', t_norm='prod', t_conorm='prod'):
+def label_driven(xcqa, query, easy_answers, qoi='rank', k=10, t_norm='prod', t_conorm='prod'):
+    # compute shapley values based on all the hard answers and report the average
+    num_atoms = get_num_atoms(query.query_type)
+    
+    shapley_values = {}
+    for atom_idx in range(num_atoms):
+        shapley_values[atom_idx] = []
+        
+    for target_entity in query.get_answer():
+        for atom_idx in range(num_atoms):
+            remaining_answers = [a for a in query.get_answer() if a != target_entity] + easy_answers
+            sv = shapley_value(xcqa, query, atom_idx=atom_idx, easy_answers=remaining_answers, target_entity=target_entity, qoi=qoi, k=k, t_norm=t_norm, t_conorm=t_conorm)
+            shapley_values[atom_idx].append(sv)
+            
+    average_shapley_values = {}
+    for atom_idx in range(num_atoms):
+        average_shapley_values[atom_idx] = sum(shapley_values[atom_idx]) / len(shapley_values[atom_idx]) if shapley_values[atom_idx] else 0.0
+    return average_shapley_values
+
+def average_shapley_values_for_query_type(xcqa, query_dataset, query_dataset_hard, query_type, start_idx=0, end_idx=5000, qoi='rank', k=10, mode='non_zero', t_norm='prod', t_conorm='prod', method='label'):
+    
     num_atoms = get_num_atoms(query_type)
     
     average_shapley_values = {}
@@ -76,12 +100,22 @@ def average_shapley_values_for_query_type(xcqa, query_dataset, query_dataset_har
     hard = query_dataset_hard.get_queries(query_type)
     complete = query_dataset.get_queries(query_type)
     
-    for idx, query in enumerate(tqdm(complete, desc=f"Calculating average Shapley values for {query_type} queries")):
-        easy_answers = query.get_answer()
-        easy_answers = [a for a in easy_answers if a not in hard[idx].get_answer()]
-        avg_shapley_values = average_shapley_value(xcqa, query, easy_answers, qoi=qoi, k=k, mode=mode, t_norm=t_norm, t_conorm=t_conorm)
+    hard = hard[start_idx:end_idx] if end_idx else hard[start_idx:]
+    complete = complete[start_idx:end_idx] if end_idx else complete[start_idx:]
+    
+    for idx, query in enumerate(tqdm(hard, desc=f"Calculating average Shapley values for {query_type} queries")):
+        easy_answers = complete[idx].get_answer()
+        easy_answers = [a for a in easy_answers if a not in query.get_answer()]
+        if method == 'prediction':
+            avg_shapley_values = prediction_driven(xcqa, query, easy_answers, qoi=qoi, k=k, mode=mode, t_norm=t_norm, t_conorm=t_conorm)
+        elif method == 'label':
+            avg_shapley_values = label_driven(xcqa, query, easy_answers, qoi=qoi, k=k, t_norm=t_norm, t_conorm=t_conorm)
         for atom_idx in range(num_atoms):
             average_shapley_values[atom_idx].append(avg_shapley_values[atom_idx])
+    
+    output_filename = f"average_shapley_values_{query_type}_{start_idx}_{end_idx}.json"
+    with open(output_filename, 'w') as f:
+        json.dump(average_shapley_values, f, indent=4)
 
     for atom_idx in range(num_atoms):
         average_shapley_values[atom_idx] = sum(average_shapley_values[atom_idx]) / len(average_shapley_values[atom_idx]) if average_shapley_values[atom_idx] else 0.0
@@ -106,23 +140,23 @@ def setup_dataset_and_graphs(data_dir):
     graph_valid.load_triples(f'{data_dir}/valid.txt', skip_missing=False, add_reverse=True)
     
     # Setup test graph
-    graph_test = Graph(dataset)
-    for edge in graph_valid.get_edges():
-        graph_test.add_edge(edge.get_head().get_name(), edge.get_name(), edge.get_tail().get_name(), skip_missing=False, add_reverse=False)
-    graph_test.load_triples(f'{data_dir}/test.txt', skip_missing=False, add_reverse=True)
+    # graph_test = Graph(dataset)
+    # for edge in graph_valid.get_edges():
+    #     graph_test.add_edge(edge.get_head().get_name(), edge.get_name(), edge.get_tail().get_name(), skip_missing=False, add_reverse=False)
+    # graph_test.load_triples(f'{data_dir}/test.txt', skip_missing=False, add_reverse=True)
     
-    return dataset, graph_train, graph_valid, graph_test
+    return dataset, graph_train, graph_valid
 
-def load_query_datasets(dataset, data_dir, query_type):
+def load_query_datasets(dataset, data_dir, query_type, split='test'):
     """Load query datasets for the specific query type."""
     # Load complete query dataset
     query_dataset = QueryDataset(dataset)
-    query_path = get_query_file_paths(data_dir, query_type, hard=False)
+    query_path = get_query_file_paths(data_dir, query_type, hard=False, split=split)
     query_dataset.load_queries_from_pkl(query_path, query_type=query_type)
     
     # Load hard query dataset
     query_dataset_hard = QueryDataset(dataset)
-    query_path_hard = get_query_file_paths(data_dir, query_type, hard=True)
+    query_path_hard = get_query_file_paths(data_dir, query_type, hard=True, split=split)
     query_dataset_hard.load_queries_from_pkl(query_path_hard, query_type=query_type)
     
     return query_dataset, query_dataset_hard
@@ -147,6 +181,13 @@ def main():
                        help='T-conorm parameter (default: prod)')
     parser.add_argument('--output_dir', default='.',
                        help='Output directory for results (default: current directory)')
+    parser.add_argument('--start_idx', type=int, default=0,
+                       help='Start index for processing queries (default: 0)')
+    parser.add_argument('--end_idx', type=int, default=5000,
+                       help='End index for processing queries (default: 5000)')
+    parser.add_argument('--split', default='test', choices=['train', 'valid', 'test'],
+                       help='Dataset split to use (default: test)')
+    parser.add_argument('--method', default='label', choices=['label', 'prediction'], help='Method for global shapley value calculation (default: label driven)')
     
     args = parser.parse_args()
     
@@ -156,37 +197,40 @@ def main():
     
     # Setup dataset and graphs
     print("Setting up dataset and graphs...")
-    dataset, graph_train, graph_valid, graph_test = setup_dataset_and_graphs(args.data_dir)
+    dataset, graph_train, graph_valid = setup_dataset_and_graphs(args.data_dir)
     print(f"Train graph: {graph_train.get_num_nodes()} nodes, {graph_train.get_num_edges()} edges")
     print(f"Valid graph: {graph_valid.get_num_nodes()} nodes, {graph_valid.get_num_edges()} edges")
-    print(f"Test graph: {graph_test.get_num_nodes()} nodes, {graph_test.get_num_edges()} edges")
+    # print(f"Test graph: {graph_test.get_num_nodes()} nodes, {graph_test.get_num_edges()} edges")
     
     # Load query datasets for the specific query type
     print(f"Loading query datasets for {args.query_type}...")
-    query_dataset, query_dataset_hard = load_query_datasets(dataset, args.data_dir, args.query_type)
+    query_dataset, query_dataset_hard = load_query_datasets(dataset, args.data_dir, args.query_type, args.split)
     print(f"Loaded {query_dataset.get_num_queries()} complete queries and {query_dataset_hard.get_num_queries()} hard queries")
     
     # Setup reasoners
     print("Setting up reasoners...")
-    reasoner_train = SymbolicReasoning(graph_train, logging=False)
-    reasoner_valid = SymbolicReasoning(graph_valid, logging=False)
-    reasoner_test = SymbolicReasoning(graph_test, logging=False)
+    if args.split == 'test':
+        reasoner = SymbolicReasoning(graph_valid, logging=False)
+    else:
+        reasoner = SymbolicReasoning(graph_train, logging=False)
     
     # Load CQD cache
     print(f"Loading CQD cache from {args.cqd_cache}...")
     cqd_cache = pd.read_json(args.cqd_cache, orient='records')
     
+    cqd_cache = cqd_cache.set_index(['entity_id', 'relation_id'])  # Set index for faster access
+
     # Setup XCQA
-    xcqa = XCQA(symbolic=reasoner_train, dataset=dataset, cqd_cache=cqd_cache, logging=False)
+    xcqa = XCQA(symbolic=reasoner, dataset=dataset, cqd_cache=cqd_cache, logging=False)
     
     # Calculate average Shapley values
     print(f"Calculating average Shapley values for query type: {args.query_type}")
     start = time.time()
     
     avg_shapley_values = average_shapley_values_for_query_type(
-        xcqa, query_dataset, query_dataset_hard, args.query_type, 
+        xcqa, query_dataset, query_dataset_hard, args.query_type, args.start_idx, args.end_idx,
         qoi=args.qoi, k=args.k, mode=args.mode, 
-        t_norm=args.t_norm, t_conorm=args.t_conorm
+        t_norm=args.t_norm, t_conorm=args.t_conorm, method=args.method
     )
     
     end = time.time()
@@ -196,7 +240,9 @@ def main():
     
     # Save results
     results = {args.query_type: avg_shapley_values}
-    output_filename = f"{args.output_dir}/average_shapley_values_{args.query_type}.json"
+    current_time = time.strftime("%Y%m%d-%H%M%S")
+    file_name = f"average_shapley_values_{args.query_type}_{current_time}.json"
+    output_filename = f"{args.output_dir}/{file_name}"
     
     with open(output_filename, 'w') as f:
         json.dump(results, f, indent=4)

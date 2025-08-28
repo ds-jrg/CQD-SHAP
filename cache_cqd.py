@@ -65,17 +65,17 @@ if __name__ == "__main__":
     dataset, graph_train, graph_valid, graph_test = load_dataset('data/FB15k-237')
     all_1p_queries = create_all_1p_queries(dataset)
     
-    if not os.path.exists('data/FB15k-237/all_1p_queries'):
-        os.makedirs('data/FB15k-237/all_1p_queries')
-        os.system('cp data/FB15k-237/FB15k-237_test_complete.pkl data/FB15k-237/all_1p_queries/FB15k-237_test_complete.pkl')
+    if not os.path.exists('data/FB15k-237/all_1p_queries_128'):
+        os.makedirs('data/FB15k-237/all_1p_queries_128')
+        os.system('cp data/FB15k-237/FB15k-237_test_complete.pkl data/FB15k-237/all_1p_queries_128/FB15k-237_test_complete.pkl')
         
     chunk_size = 100000
 
     for i in tqdm(range(0, len(all_1p_queries), chunk_size), desc="Creating CQD files for 1p queries"):
         batch_queries = all_1p_queries[i:i + chunk_size]
-        create_cqd_file(batch_queries, output_file=f'data/FB15k-237/all_1p_queries/all_1p_queries_{i // chunk_size}.pkl')
-        sample_path = f'data/FB15k-237/all_1p_queries/all_1p_queries_{i // chunk_size}.pkl'
-        result_path = f'data/FB15k-237/all_1p_queries/results_{i // chunk_size}.json'
+        create_cqd_file(batch_queries, output_file=f'data/FB15k-237/all_1p_queries_128/all_1p_queries_{i // chunk_size}.pkl')
+        sample_path = f'data/FB15k-237/all_1p_queries_128/all_1p_queries_{i // chunk_size}.pkl'
+        result_path = f'data/FB15k-237/all_1p_queries_128/results_{i // chunk_size}.json'
         # run the cqd_co_xcqa model
         args = argparse.Namespace(
             path = 'FB15k-237',
@@ -92,7 +92,7 @@ if __name__ == "__main__":
             sample = False,
             result_path = result_path,
             save_result = True,
-            save_k = 25
+            save_k = 128
         )
         main(args)
 
@@ -107,4 +107,4 @@ if __name__ == "__main__":
         with open(output_file, 'w') as f:
             json.dump(all_data, f)
             
-    merge_json_files('data/FB15k-237/all_1p_queries', 'data/FB15k-237/all_1p_queries.json')
+    merge_json_files('data/FB15k-237/all_1p_queries_128', 'data/FB15k-237/all_1p_queries_128.json')

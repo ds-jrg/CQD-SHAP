@@ -175,7 +175,8 @@ if __name__ == "__main__":
     reasoner_test = SymbolicReasoning(graph_test, logging=False)
     
     cqd_cache = pd.read_json('data/FB15k-237/all_1p_queries_top25.json', orient='records')
-    cqd_cache
+    
+    cqd_cache = cqd_cache.set_index(['entity_id', 'relation_id'])  # Set index for faster access
 
 
     query_types = ['2p', '3p', '2i', '2u', '3i', 'pi', 'up', 'ip']

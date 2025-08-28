@@ -1,67 +1,85 @@
 import pandas as pd
-from graph import Graph
 import numpy as np
 
+np.random.seed(42)
+fillna_value = 0.0001
+
 class SymbolicReasoning:
-    def __init__(self, graph: Graph, logging: bool = True):
+    def __init__(self, graph, logging=True):
         self.graph = graph
         self.logging = logging
-
-    def query_1p(self, head: int, relation: int):
-        if self.logging:
-            print(f"Querying for head: {self.graph.dataset.get_title_by_node(self.graph.dataset.get_node_by_id(head))} ({head} | {self.graph.dataset.get_node_by_id(head)}) and relation: {self.graph.dataset.get_relation_by_id(relation)} ({relation})")
-        answers = []
-        edges = self.graph.get_edges()
-        for edge in edges:
-            if edge.get_head().get_id() == head and edge.get_id() == relation:
-                if self.logging:
-                    print(f"Found edge: {edge.get_head().get_title()} --{edge.get_name()}--> {edge.get_tail().get_title()} ({edge.get_tail().get_id()})")
-                answers.append(edge.get_tail().get_id())
-        if self.logging:
-            print("-" * 50)
-        return list(set(answers))
-    
-    def query_2p(self, head: int, relations: tuple):
-        first_level_answers = self.query_1p(head, relations[0])
-        second_level_answers = {}
-        for answer in first_level_answers:
-            second_level_answers[answer] = self.query_1p(answer, relations[1])
-        answers_set = set()
-        for answer, second_level in second_level_answers.items():
-            for item in second_level:
-                answers_set.add(item)
-        return second_level_answers, list(answers_set)
-    
-    def query_3p(self, head: int, relations: tuple):
-        first_level_answers = self.query_2p(head, (relations[0], relations[1]))
-        second_level_answers = {}
-        for answer, second_level in first_level_answers[0].items():
-            second_level_answers[answer] = self.query_1p(answer, relations[2])
-        answers_set = set()
-        for answer, second_level in second_level_answers.items():
-            for item in second_level:
-                answers_set.add(item)
-        return second_level_answers, list(answers_set)
-    
-    def fixed_size_answer(self, answers: list, size: int):
-        # make a dataframe which the index are answers and there is a column called score which the value is 1 for all answers
-        array = np.full((len(answers), 1), 1)
-        answers = np.array(answers)
-        df = pd.DataFrame(array, index=answers, columns=['score'])
-
-        if len(df) < size:
-            # add random nodes to fill the size
-            all_nodes = list(self.graph.dataset.id2node.keys())
-            all_nodes_remaining = [node for node in all_nodes if node not in df.index]
-            additional_nodes = np.random.choice(all_nodes_remaining, size - len(df), replace=False)
-            additional_nodes = [int(node) for node in additional_nodes]
-            # add them with score 0
-            additional_df = pd.DataFrame(np.zeros((len(additional_nodes), 1)), index=additional_nodes, columns=['score'])
-            if len(df) == 0:
-                df = additional_df
+        # Build a fast (head, relation) => [tail_id, ...] lookup for quick 1-hop queries
+        self.edge_index = {}  # (head, relation) -> set of tail_ids
+        for edge in self.graph.get_edges():
+            key = (edge.get_head().get_id(), edge.get_id())
+            tail_id = edge.get_tail().get_id()
+            if tail_id is None:
+                print(f"Warning: Edge {edge} has no tail_id, skipping.")
+                print(f"Edge: {edge}, Head ID: {edge.get_head().get_id()}, Relation ID: {edge.get_id()}")
             else:
+                if key not in self.edge_index:
+                    self.edge_index[key] = {tail_id}
+                else:
+                    self.edge_index[key].add(tail_id)
+
+    def query_1p(self, head, relation):
+        if self.logging:
+            h_id = self.graph.dataset.get_node_by_id(head)
+            h_title = self.graph.dataset.get_title_by_node(h_id)
+            r_name = self.graph.dataset.get_relation_by_id(relation)
+            print(f"Querying for head: {h_title} ({head} | {h_id}) and relation: {r_name} ({relation})")
+        answers = self.edge_index.get((head, relation), set())
+        if self.logging:
+            for tail_id in answers:
+                t_title = self.graph.dataset.get_title_by_node(self.graph.dataset.get_node_by_id(tail_id))
+                r_name = self.graph.dataset.get_relation_by_id(relation)
+                print(f"Found edge: {h_title} --{r_name}--> {t_title} ({tail_id})")
+            print("-" * 50)
+        # Return list (not set) for compatibility
+        return list(answers)
+
+    def query_2p(self, head, relations):
+        first_level = self.query_1p(head, relations[0])
+        second_level_answers = {}
+        answers_set = set()
+        for answer in first_level:
+            res = self.query_1p(answer, relations[1])
+            if res:
+                second_level_answers[answer] = res
+                answers_set.update(res)
+        return second_level_answers, list(answers_set)
+
+    def query_3p(self, head, relations):
+        second_level_answers1, second_answers_flat = self.query_2p(head, relations[:2])
+        third_level_answers = {}
+        answers_set = set()
+        for answer in second_answers_flat:
+            res = self.query_1p(answer, relations[2])
+            if res:
+                third_level_answers[answer] = res
+                answers_set.update(res)
+        return third_level_answers, list(answers_set)
+
+    def fixed_size_answer(self, answers, size):
+        try:
+            if answers is None:
+                answers = []
+            # Efficient DataFrame creation
+            answers = np.asarray(answers, dtype=int)
+            n_current = len(answers)
+            df = pd.DataFrame({'score': np.ones(n_current, dtype=int)}, index=answers)
+            if n_current < size:
+                all_nodes = np.array(list(self.graph.dataset.id2node.keys()), dtype=int)
+                # only pick nodes not in answers
+                mask = ~np.isin(all_nodes, answers)
+                additional_nodes = np.random.choice(all_nodes[mask], size - n_current, replace=False)
+                # additional_df = pd.DataFrame({'score': np.zeros(len(additional_nodes), dtype=int)}, index=additional_nodes)
+                # fill with 0.01
+                additional_df = pd.DataFrame({'score': np.full(len(additional_nodes), fillna_value, dtype=float)}, index=additional_nodes)
                 df = pd.concat([df, additional_df])
-        elif len(df) > size:
-            # truncate the dataframe to the size
-            df = df.sample(size, replace=False)
-        return df
+            elif n_current > size:
+                df = df.sample(n=size, replace=False, random_state=None)
+            return df
+        except Exception as e:
+            print(f"Error in fixed_size_answer: {e}")
+            print(answers)

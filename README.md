@@ -11,3 +11,18 @@ The final merged cache will be stored in `data/FB15k-237/all_1p_queries.json`. Y
 ```bash
 python cqd_cache.py
 ```
+
+## Global Explanation
+
+You can use `global_single.py` to compute global explanations for a query type.
+
+### Label-driven
+```bash
+python global_single.py 2u --qoi rank --k 10 --t_norm prod --t_conorm prod --split valid --method label
+```
+
+### Prediction-driven
+
+```bash
+python global_single.py 2u --qoi rank --k 10 --t_norm prod --t_conorm prod --split test --method prediction --mode top_k
+```
