@@ -25,7 +25,7 @@ class LinkPrediction:
                 scores = scores.topk(k)
         return scores
     
-    def predict_batch(self, h_ids, r_ids, return_df=True, k=-1):
+    def predict_batch(self, h_ids, r_ids, k=-1):
         if not torch.is_tensor(h_ids):
             h_ids = torch.tensor(h_ids, device=self.device, dtype=torch.long)
 
@@ -43,18 +43,7 @@ class LinkPrediction:
 
         scores = self.model.forward_emb(h_emb, r_emb)  # [batch_size, num_entities]
 
-        if return_df:
-            results = []
-            scores_np = scores.detach().cpu().numpy()
-            for row in scores_np:
-                df = pd.DataFrame(row, columns=["score"])
-                df = df.sort_values(by="score", ascending=False)
-                if k > 0:
-                    df = df.head(k)
-                results.append(df)
-            return results
-        else:
-            if k > 0:
-                scores, indices = torch.topk(scores, k, dim=1)
-                return scores, indices
-            return scores
+        if k > 0:
+            scores, indices = torch.topk(scores, k, dim=1)
+            return scores, indices
+        return scores
