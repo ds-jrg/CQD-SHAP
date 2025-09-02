@@ -40,93 +40,163 @@ class XCQA:
         else:
             return self.symbolic.predict_batch(anchors, relations, k=k)
 
-    def query_2p(self, h_id, r_ids, coalition, k=5):
+    def query_2p(self, h_id, r_ids, coalition, k=5, t_norm: str = "prod"):
         """
-        lp_model: LinkPrediction object
-        h_id: starting entity (int) -> e.g. 10645
-        r_ids: list of relation ids for each hop -> e.g. [135, 94]
-        k: beam size (top-k expansion at each layer) -> e.g. 10
+        2p query: (h, r1, VAR) AND (VAR, r2, ?)
         """
-
-        # device = lp_model.device
-        # num_entities = lp_model.model.sizes[2]  # depends on model definition
-
-        scores_first = self.atom_predict(anchor=h_id, relation=r_ids[0], mask=coalition[0], k=-1) # [1, num_entities]
+        # First hop
+        scores_first = self.atom_predict(anchor=h_id, relation=r_ids[0], mask=coalition[0], k=-1)
         scores_first = scores_first.squeeze(0)  # [num_entities]
 
+        # Top-k expansion
         topk_scores, topk_indices = torch.topk(scores_first, k)   # [k]
-        print(topk_scores)
-        print(topk_indices)
-        scores_second = self.atom_batch_predict(topk_indices, r_ids[1], mask=coalition[1], k=-1) # [k, num_entities]
+        scores_second = self.atom_batch_predict(
+            topk_indices, r_ids[1], mask=coalition[1], k=-1
+        )  # [k, num_entities]
 
-        combined = scores_second * topk_scores.unsqueeze(1) # [k, num_entities]
+        # Combine depending on t_norm
+        if t_norm == "prod":
+            combined = scores_second * topk_scores.unsqueeze(1)
+        elif t_norm == "min":
+            combined = torch.min(scores_second, topk_scores.unsqueeze(1))
+        elif t_norm == "max":
+            combined = torch.max(scores_second, topk_scores.unsqueeze(1))
+        else:
+            raise ValueError(f"Unsupported t_norm: {t_norm}")
 
-        max_scores, max_parent = combined.max(dim=0) # [num_entities]
-        print("max_scores:", max_scores)
-        print("max_parent:", max_parent)
-        col_idx = torch.arange(scores_second.size(1))  # [num_entities]
+        # Existential aggregation across intermediate vars
+        max_scores, max_parent = combined.max(dim=0)
+
+        col_idx = torch.arange(scores_second.size(1))
         df = pd.DataFrame({
                 'scores_0': topk_scores[max_parent].detach().cpu().numpy(),
                 'scores_1': scores_second[max_parent, col_idx].detach().cpu().numpy(),
                 'variable_0': topk_indices[max_parent].detach().cpu().numpy(),
                 'final_score': max_scores.detach().cpu().numpy()
         })
+
         df = df.sort_values(by="final_score", ascending=False)
-        df['answer'] = df.index
-        df = df.reset_index(drop=True)
         return df
 
-    def query_3p(self, h_id, r_ids, coalition, k=5):
+
+    def query_2i(self, h_ids, r_ids, coalition, k=5, t_norm: str = "prod"):
         """
-        3p path query: h --r1--> ? --r2--> ? --r3--> t
-        lp_model: LinkPrediction object
-        h_id: starting entity (int)
-        r_ids: list of 3 relation ids [r1, r2, r3]
-        k: beam size for expansions
+        2i query: (h1, r1, ?) AND (h2, r2, ?)
+        Intersection via t_norm (prod/min/max).
         """
-        # Step 1: First hop
-        scores_first = self.atom_predict(anchor=h_id, relation=r_ids[0], mask=coalition[0], k=k) # [1, num_entities]
-        topk1_scores, topk1_indices = torch.topk(scores_first, k)   # [k]
+        assert len(h_ids) == 2 and len(r_ids) == 2 and len(coalition) == 2
 
-        # Step 2: Second hop - expand all topk1
-        scores_second = self.atom_batch_predict(topk1_indices, r_ids[1], mask=coalition[1], k=k) # [k, num_entities]
-        combined2 = scores_second * topk1_scores.unsqueeze(1) # Broadcast multiplication
-        max_scores2, max_parent2 = combined2.max(dim=0) # Aggregate best over k
-        topk2_scores, topk2_indices = torch.topk(max_scores2, k)
+        scores_0 = self.atom_predict(anchor=h_ids[0], relation=r_ids[0], mask=coalition[0], k=-1)
+        scores_1 = self.atom_predict(anchor=h_ids[1], relation=r_ids[1], mask=coalition[1], k=-1)
 
-        # Step 3: Third hop - expand topk2 results
-        scores_third = self.atom_batch_predict(topk2_indices, r_ids[2], mask=coalition[2], k=k) # [k, num_entities]
-        combined3 = scores_third * topk2_scores.unsqueeze(1) # [k, num_entities]
-        max_scores3, max_parent3 = combined3.max(dim=0)
+        scores_0 = scores_0.squeeze(0)
+        scores_1 = scores_1.squeeze(0)
 
-        # Index bookkeeping
-        col_idx = torch.arange(scores_third.size(1))
+        # Apply intersection operator depending on t_norm
+        if t_norm == "prod":
+            combined = scores_0 * scores_1
+        elif t_norm == "min":
+            combined = torch.min(scores_0, scores_1)
+        elif t_norm == "max":
+            combined = torch.max(scores_0, scores_1)
+        else:
+            raise ValueError(f"Unsupported t_norm: {t_norm}")
+
         df = pd.DataFrame({
-            'scores_0': topk1_scores[max_parent2[max_parent3]].detach().cpu().numpy(),
-            'scores_1': scores_second[max_parent2[max_parent3], topk2_indices[max_parent3]].detach().cpu().numpy(),
-            'scores_2': scores_third[max_parent3, col_idx].detach().cpu().numpy(),
-            'variable_0': topk1_indices[max_parent2[max_parent3]].detach().cpu().numpy(),
-            'variable_1': topk2_indices[max_parent3].detach().cpu().numpy(),
-            'final_score': max_scores3.detach().cpu().numpy()
+            'scores_0': scores_0.detach().cpu().numpy(),
+            'scores_1': scores_1.detach().cpu().numpy(),
+            'final_score': combined.detach().cpu().numpy()
         })
+
         df = df.sort_values(by="final_score", ascending=False)
-        df['answer'] = df.index
-        df = df.reset_index(drop=True)
+        return df
+    
+    def query_2u(self, h_ids, r_ids, coalition, k=5, t_conorm: str = "prod"):
+        """
+        2u query: (h1, r1, ?) OR (h2, r2, ?)
+        Union via t_conorm (prod/min/max).
+        """
+        assert len(h_ids) == 2 and len(r_ids) == 2 and len(coalition) == 2
+
+        scores_0 = self.atom_predict(anchor=h_ids[0], relation=r_ids[0], mask=coalition[0], k=-1)
+        scores_1 = self.atom_predict(anchor=h_ids[1], relation=r_ids[1], mask=coalition[1], k=-1)
+
+        scores_0 = scores_0.squeeze(0)
+        scores_1 = scores_1.squeeze(0)
+
+        # Apply union operator depending on t_conorm
+        if t_conorm == "prod":
+            combined = scores_0 + scores_1 - (scores_0 * scores_1)
+        elif t_conorm == "min":
+            combined = torch.min(scores_0, scores_1)
+        elif t_conorm == "max":
+            combined = torch.max(scores_0, scores_1)
+        else:
+            raise ValueError(f"Unsupported t_conorm: {t_conorm}")
+
+        df = pd.DataFrame({
+            'scores_0': scores_0.detach().cpu().numpy(),
+            'scores_1': scores_1.detach().cpu().numpy(),
+            'final_score': combined.detach().cpu().numpy()
+        })
+
+        df = df.sort_values(by="final_score", ascending=False)
+        return df
+    
+    def query_3i(self, h_ids, r_ids, coalition, k=5, t_norm: str = "prod"):
+        """
+        3i query: (h1, r1, ?) AND (h2, r2, ?) AND (h3, r3, ?)
+        Intersection of 3 projections via t_norm (prod/min/max).
+        """
+        assert len(h_ids) == 3 and len(r_ids) == 3 and len(coalition) == 3
+
+        # Get branch scores
+        scores_0 = self.atom_predict(anchor=h_ids[0], relation=r_ids[0], mask=coalition[0], k=-1).squeeze(0)
+        scores_1 = self.atom_predict(anchor=h_ids[1], relation=r_ids[1], mask=coalition[1], k=-1).squeeze(0)
+        scores_2 = self.atom_predict(anchor=h_ids[2], relation=r_ids[2], mask=coalition[2], k=-1).squeeze(0)
+
+        # Intersection operator
+        if t_norm == "prod":
+            combined = scores_0 * scores_1 * scores_2
+        elif t_norm == "min":
+            combined = torch.min(torch.min(scores_0, scores_1), scores_2)
+        elif t_norm == "max":
+            combined = torch.max(torch.max(scores_0, scores_1), scores_2)
+        else:
+            raise ValueError(f"Unsupported t_norm: {t_norm}")
+
+        # Build dataframe
+        df = pd.DataFrame({
+            'scores_0': scores_0.detach().cpu().numpy(),
+            'scores_1': scores_1.detach().cpu().numpy(),
+            'scores_2': scores_2.detach().cpu().numpy(),
+            'final_score': combined.detach().cpu().numpy()
+        })
+
+        df = df.sort_values(by="final_score", ascending=False)
         return df
 
     def query_execution(self, query: Query, k: int = 10, coalition: list = None, 
-                    t_norm: str = 'prod', t_conorm: str = 'min'):
-
-        # Set default coalition if not provided (default settings would be CQD execution)
+                        t_norm: str = 'prod', t_conorm: str = 'max'):
         if coalition is None:
-            coalition = [1] * get_num_atoms(query.query_type)
+            coalition = [1] * self.get_num_atoms(query.query_type)
 
         if query.query_type == '2p':
             anchor = query.get_query()[0][0]
             relations = query.get_query()[0][1]
-            return self.query_2p(anchor, relations, coalition, k=k)
+            return self.query_2p(anchor, relations, coalition, k=k, t_norm=t_norm)
 
-        elif query.query_type == '3p':
-            anchor = query.get_query()[0][0]
-            relations = query.get_query()[0][1] 
-            return self.query_3p(anchor, relations, coalition, k=k)
+        elif query.query_type == '2i':
+            anchors = [q[0] for q in query.get_query()]
+            relations = [q[1][0] for q in query.get_query()]
+            return self.query_2i(anchors, relations, coalition, k=k, t_norm=t_norm)
+
+        elif query.query_type == '2u':
+            anchors = [q[0] for q in query.get_query()]
+            relations = [q[1][0] for q in query.get_query()]
+            return self.query_2u(anchors, relations, coalition, k=k, t_conorm=t_conorm)
+
+        elif query.query_type == '3i':
+            anchors = [q[0] for q in query.get_query()]
+            relations = [q[1][0] for q in query.get_query()]
+            return self.query_3i(anchors, relations, coalition, k=k, t_norm=t_norm)

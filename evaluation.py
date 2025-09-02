@@ -10,6 +10,29 @@ from statistics import mean
 from tqdm import tqdm
 from pathlib import Path
 
+# set random seed
+random.seed(42)
+
+def get_first(query_type):
+    """Get the number of atoms for a given query type."""
+    atom_mapping = {
+        '2p': [0], '3p': [0], '2i': [0, 1], '2u': [0, 1], 
+        '3i': [0, 1, 2], 'pi': [0], 'up': [0, 1], 'ip': [0, 1]
+    }
+    if query_type not in atom_mapping:
+        raise ValueError(f"Unsupported query type: {query_type}.")
+    return atom_mapping[query_type]
+
+def get_last(query_type):
+    """Get the last atom for a given query type."""
+    atom_mapping = {
+        '2p': [1], '3p': [2], '2i': [0, 1], '2u': [0, 1], 
+        '3i': [0, 1, 2], 'pi': [1, 2], 'up': [2], 'ip': [2]
+    }
+    if query_type not in atom_mapping:
+        raise ValueError(f"Unsupported query type: {query_type}.")
+    return atom_mapping[query_type]
+
 def compute_metrics(result, answer_complete, target_answer):
     """
     result: pd.Series or pd.DataFrame with index = candidate answers, sorted by predicted score (descending).
@@ -212,7 +235,10 @@ def necessary(hard: list, complete: list, num_atoms: int, xcqa: "XCQA", k: int,
                 # Always zero out (symbolic execution) first atom
                 elif method == "first":
                     new_coalition = original_coalition.copy()
-                    new_coalition[0] = 0   # zero out most important atom (symbolic execution) TODO: needs to be changed for queries with multiple projections
+                    first_atoms = get_first(query_hard.query_type)
+                    # select a random atom from first atoms
+                    random_first_atom = random.choice(first_atoms)
+                    new_coalition[random_first_atom] = 0   # zero out most important atom (symbolic execution) TODO: needs to be changed for queries with multiple projections
 
                     result_new = xcqa.query_execution(
                         query_hard, k=k, coalition=new_coalition,
@@ -221,7 +247,10 @@ def necessary(hard: list, complete: list, num_atoms: int, xcqa: "XCQA", k: int,
                 # Always zero out (symbolic execution) last atom
                 elif method == "last":
                     new_coalition = original_coalition.copy()
-                    new_coalition[num_atoms-1] = 0   # zero out last projection atom (symbolic execution) TODO: needs to be changed for queries with multiple projections
+                    last_atoms = get_last(query_hard.query_type)
+                    # select a random atom from last atoms
+                    random_last_atom = random.choice(last_atoms)
+                    new_coalition[random_last_atom] = 0   # zero out last projection atom (symbolic execution) TODO: needs to be changed for queries with multiple projections
 
                 result_new = xcqa.query_execution(
                     query_hard, k=k, coalition=new_coalition,
