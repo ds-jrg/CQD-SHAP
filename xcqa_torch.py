@@ -399,7 +399,84 @@ class XCQA:
 
         df = df.sort_values(by="final_score", ascending=False)
         return df
+    
+    def query_pi(self, h_ids, r_ids, coalition, k=5, t_norm: str = "prod"):
+        """
+        pi / 1p2i query:
+        Branch A: (h1, r1, VAR) AND (VAR, r2, ?), i.e. 2p query
+        Branch B: (h2, r3, ?), i.e. single projection
+        Final: intersection of Branch A and Branch B results.
+        """
 
+        assert len(h_ids) == 2 and len(r_ids) == 3 and len(coalition) == 3, \
+            "Expected 2 anchors, 3 relations, 3 coalition values."
+
+        # --- Branch A (2p) ---
+        h_A = h_ids[0]
+        rA = [r_ids[0], r_ids[1]]
+        coalA = [coalition[0], coalition[1]]
+
+        # First hop
+        scores_first = self.atom_predict(anchor=h_A, relation=rA[0], mask=coalA[0], k=-1)
+        scores_first = scores_first.squeeze(0)
+        device = scores_first.device  # keep same device as model outputs
+
+        topk_scores, topk_indices = torch.topk(scores_first, k)
+
+        # Second hop
+        scores_second = self.atom_batch_predict(topk_indices, rA[1], mask=coalA[1], k=-1)
+
+        # Combine first and second hop
+        if t_norm == "prod":
+            combined = scores_second * topk_scores.unsqueeze(1)
+        elif t_norm == "min":
+            combined = torch.min(scores_second, topk_scores.unsqueeze(1))
+        elif t_norm == "max":
+            combined = torch.max(scores_second, topk_scores.unsqueeze(1))
+        else:
+            raise ValueError(f"Unsupported t_norm: {t_norm}")
+
+        max_scores_A, max_parent = combined.max(dim=0)
+        col_idx = torch.arange(scores_second.size(1), device=device)
+
+        # Keep per‑answer provenance like 2p
+        scores_0 = topk_scores[max_parent]
+        scores_1 = scores_second[max_parent, col_idx]
+        variable_0 = topk_indices[max_parent]
+        scores_branchA = max_scores_A  # this is the final 2p branch result
+
+        # --- Branch B (1p projection) ---
+        h_B = h_ids[1]
+        rB = r_ids[2]
+        coalB = coalition[2]
+
+        scores_branchB = self.atom_predict(anchor=h_B, relation=rB,
+                                        mask=coalB, k=-1).squeeze(0)
+        # Ensure it's same device
+        scores_branchB = scores_branchB.to(device)
+
+        # --- Intersection ---
+        if t_norm == "prod":
+            combined_final = scores_branchA * scores_branchB
+        elif t_norm == "min":
+            combined_final = torch.min(scores_branchA, scores_branchB)
+        elif t_norm == "max":
+            combined_final = torch.max(scores_branchA, scores_branchB)
+        else:
+            raise ValueError(f"Unsupported t_norm: {t_norm}")
+
+        # --- Build DataFrame ---
+        df = pd.DataFrame({
+            'scores_0': scores_0.detach().cpu().numpy(),
+            'scores_1': scores_1.detach().cpu().numpy(),
+            'scores_2': scores_branchB.detach().cpu().numpy(),
+            'variable_0': variable_0.detach().cpu().numpy(),
+            'final_score': combined_final.detach().cpu().numpy()
+        })
+
+        df = df.sort_values(by="final_score", ascending=False)
+        return df
+        
     def query_execution(self, query: Query, k: int = 10, coalition: list = None, 
                         t_norm: str = 'prod', t_conorm: str = 'max'):
         if coalition is None:
@@ -453,3 +530,19 @@ class XCQA:
             anchors = [anchor1, anchor2]
             relations = [relation1, relation2, relation3]
             return self.query_ip(anchors, relations, coalition, k=k, t_norm=t_norm)
+        
+        elif query.query_type == 'pi':
+            branch1 = query.query[0]
+            branch2 = query.query[1]
+            anchor1 = branch1[0]
+            relation1 = branch1[1][0]
+            relation2 = branch1[1][1]
+            anchor2 = branch2[0]
+            relation3 = branch2[1][0]
+            anchors = [anchor1, anchor2]
+            relations = [relation1, relation2, relation3]
+            return self.query_pi(anchors, relations, coalition, k=k, t_norm=t_norm)
+        
+        else:
+            raise ValueError(f"Unsupported query type: {query.query_type}.\n"
+                             "Supported types: 2p, 2i, 2u, 3i, 3p, up (for 2u1p), ip (for 2i1p), pi (for 1p2i).")
