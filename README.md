@@ -1,28 +1,79 @@
 # Explainable Graph Query Answering
 
-## Caching
+## Prerequisites
 
-The methodology that CQD uses to compute the answers to a multihop query is based on the results of each atom in the query. This means that we only need a link prediction model to answer each atom (`1p` queries) and then combine the results of each atom via the t-norm and t-conorm operators to compute the final answer set. As the number of entities and relations are finite, we can compute the answers for each possible `(entity, relation, ?)` triple and store them in a cache. Then, we can answer any complex query by just looking up the answers for each atom in the cache. This will significantly speed up the query answering process, and therefore the explanation process.
+### Environment Setup
 
-There is a python script `cqd_cache.py` that implements the caching mechanism. Note that this code is written just for the FB15k-237 dataset, and if you want to use it for other datasets, you need to modify the data directory in the code. Furthermore, there are various parameters that you can set in the code. The most important one is the `k` which is the number of top answers that you want to store in the cache. Another important parameter is `chunk_size`, which is the number of queries that will be processed in each call to the CQD model. As inputing all queries at once to the CQD model may lead to memory issues, you can set this parameter to a smaller value (e.g., 10000) based on your machine's memory capacity.
-
-The final merged cache will be stored in `data/FB15k-237/all_1p_queries.json`. You can run the script as follows:
+We recommend using a conda environment with python `3.10`. You can use the following commands to set up the environment:
 
 ```bash
-python cqd_cache.py
+conda create -n xcqa python=3.10
 ```
 
-## Global Explanation
+To activate the environment, use:
 
-You can use `global_single.py` to compute global explanations for a query type.
-
-### Label-driven
 ```bash
-python global_single.py 2u --qoi rank --k 10 --t_norm prod --t_conorm prod --split valid --method label
+conda activate xcqa
 ```
 
-### Prediction-driven
+### Data Preparation
+
+We use the same data as in [CQD](https://github.com/uclnlp/cqd/). You can use the following command to download the data inside the project directory:
 
 ```bash
-python global_single.py 2u --qoi rank --k 10 --t_norm prod --t_conorm prod --split test --method prediction --mode top_k
+wget http://data.neuralnoise.com/cqd-data.tgz
+```
+
+After downloading, run the following command to extract the data (this will create a `data` directory):
+
+```bash
+tar -xvzf cqd-data.tgz
+```
+
+After downloading, run the following command to extract the data (this will create a `data` directory):
+
+```bash
+tar -xvzf cqd-data.tgz
+```
+
+### Pre-trained Models
+
+We also use pre-trained models from [CQD](https://github.com/uclnlp/cqd/). You can download the pre-trained models using the following command:
+
+```bash
+wget http://data.neuralnoise.com/cqd-models.tgz
+```
+
+After downloading, run the following command to extract the models (this will create a `models` directory):
+
+```bash
+tar -xvzf cqd-models.tgz
+```
+
+**Note:** There are multiple checkpoints available in the `models` directory. The ones we used in our experiments are as follows:
+
+- FB15k-237: `models/FB15k-model-rank-1000-epoch-100-1602520745.pt`
+- NELL995: `models/NELL-model-rank-1000-epoch-100-1602499096.pt`
+
+## Necessary and Sufficient Explanations
+
+The result for necessary and sufficient explanations evaluation can be reproduced by the `evaluation.py` script. The script takes the following arguments:
+
+| Argument | Description | Value |
+|----------|-------------|-------|
+| `query_type` | The type of query to evaluate | `2p`, `3p`, `2i`, `3i`, `2u`, `pi` (i.e., 1p2i), `ip` (i.e., 2i1p), `up` (i.e., 2u1p) |
+| `--data_dir` | The directory where the data is stored | e.g. `data/FB15k-237` (default) or `data/NELL995` |
+| `--model_path` | The path to the pre-trained model | e.g. `models/FB15k-model-rank-1000-epoch-100-1602520745.pt` (default) or `models/NELL-model-rank-1000-epoch-100-1602499096.pt` |
+| `--k` | Value of k for top-k beam search | Default is `10` |
+| `--t-norm` | The t-norm to use for evaluation | `prod` (default), `min`, `max` |
+| `--t-conorm` | The t-conorm to use for evaluation | `prob` (default), `max`, `min` |
+| `--split` | The data split to use for evaluation | `test` (default), `valid` |
+| `--method` | The method to use for generating explanations | `shapley` (default), `score`, `random`, `last`, `first` |
+| `--explanation` | The type of explanation to evaluate | `necessary` (default), `sufficient` |
+| `--output_path` | The path to save the evaluation results | Default is `output.json` |
+
+An example command to run the evaluation for necessary explanations on 2p queries using the NELL dataset is as follows:
+
+```bash
+python evaluation.py 2p --k 10 --method shapley --explanation necessary --output_path eval/nell/necessary_2p_shapley.json --data_dir data/NELL995 --model_path models/NELL-model-rank-1000-epoch-100-1602499096.pt
 ```
