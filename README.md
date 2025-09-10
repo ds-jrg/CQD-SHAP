@@ -1,4 +1,6 @@
-# Explainable Graph Query Answering
+# CQD-SHAP
+
+This repository contains the code to reproduce the results from the paper "CQD-SHAP: Explainable Complex Query Answering with Shapley Values".
 
 ## Prerequisites
 
