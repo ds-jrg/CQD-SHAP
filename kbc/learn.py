@@ -106,9 +106,11 @@ def kbc_model_load(model_path):
 		dataset_name = "YAGO3-10"
 	if 'FB15k' and '237' in identifiers:
 		dataset_name = 'FB15k-237'
-
+	
+	# print all files in the present dir that the code is running
+	#print("Files in directory:", os.listdir('.'))
+	#print("Files in directory:", os.listdir('models'))
 	model_dir = os.path.dirname(model_path)
-
 	with open(os.path.join(model_dir, f'{dataset_name}-metadata-{timestamp}.json'), 'r') as json_file:
 		metadata = json.load(json_file)
 

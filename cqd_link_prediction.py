@@ -8,7 +8,7 @@ class LinkPrediction:
         self.model = self.kbc.model
         self.model.eval()
         self.device = next(self.model.parameters()).device
-        print("Successfully loaded model and set to eval mode (device: {})".format(self.device))
+        # print("Successfully loaded model and set to eval mode (device: {})".format(self.device))
 
     def predict(self, h_id, r_id, return_df=True, k=-1):
         h_emb = self.model.embeddings[0](torch.tensor([h_id], device=self.device))

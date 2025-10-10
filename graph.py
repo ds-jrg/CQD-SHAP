@@ -63,20 +63,31 @@ class Dataset:
         return self.rel2id.get(relation, None)
 
     def set_node2title(self, filename):
-        node2title, title2node = self.load_key_value_files(filename)
-        self.node_to_title = node2title
+        try:
+            node2title, title2node = self.load_key_value_files(filename)
+        except:
+            print(f"Failed to load node titles from {filename}. Using entity names as titles.")
+            node2title = {v: v for k, v in self.id2node.items()}
+            title2node = {v: v for k, v in self.id2node.items()}
+        self.node2title = node2title
         self.title2node = title2node
-        print(f"Loaded {len(self.node_to_title)} node titles from {filename}.")
+        print(f"Loaded {len(self.node2title)} node titles from {filename}.")
 
 
     def get_title_by_node(self, node):
-        return self.node_to_title.get(node, None)
+        return self.node2title.get(node, None)
     
     def get_node_by_title(self, title):
         return self.title2node.get(title, None)
     
     def get_num_nodes(self):
         return len(self.id2node)
+    
+    def get_title_by_id(self, node_id):
+        node = self.get_node_by_id(node_id)
+        if node is not None:
+            return self.get_title_by_node(node)
+        return None
 
 class Node:
     def __init__(self, name: str, id: int, title: str):
@@ -121,12 +132,16 @@ class Graph:
         head_id = self.dataset.get_id_by_node(head)
         tail_id = self.dataset.get_id_by_node(tail)
         relation_id = self.dataset.get_id_by_relation(relation)
+        skipped = 0
         if head_id is None and skip_missing:
-            print(f'Node {head} not found in dataset, skipping edge')
+            # print(f'Node {head} not found in dataset, skipping edge')
+            skipped += 1
         elif tail_id is None and skip_missing:
-            print(f'Node {tail} not found in dataset, skipping edge')
+            # print(f'Node {tail} not found in dataset, skipping edge')
+            skipped += 1
         elif relation_id is None and skip_missing:
-            print(f'Relation {relation} not found in dataset, skipping edge')
+            # print(f'Relation {relation} not found in dataset, skipping edge')
+            skipped += 1
         else:
             head_node = Node(head, head_id, self.dataset.get_title_by_node(head))
             tail_node = Node(tail, tail_id, self.dataset.get_title_by_node(tail))
@@ -137,13 +152,16 @@ class Graph:
                 reverse_relation_id = self.dataset.get_id_by_relation(reverse_relation)
                 reverse_edge = Edge(reverse_relation, reverse_relation_id, tail_node, head_node)
                 self.edges.append(reverse_edge)
+        return skipped
 
     def load_triples(self, filename: str, skip_missing: bool = True, add_reverse: bool = True):
         try:
+            counter = 0
             with open(filename, 'r') as f:
                 for line in f:
                     head, relation, tail = line.strip().split('\t')
-                    self.add_edge(head, relation, tail, skip_missing, add_reverse)
+                    counter += self.add_edge(head, relation, tail, skip_missing, add_reverse)
+            print(f'Loaded {len(self.edges)} edges from {filename}, skipped {counter} edges due to missing nodes or relations.')
         except FileNotFoundError:
             raise ValueError(f'File {filename} not found')
         except Exception as e:

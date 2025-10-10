@@ -52,27 +52,34 @@ def score_queries(args):
 
         scores_lst = []
         nb_queries = s_emb.shape[0]
-        #for i in tqdm(range(nb_queries)):
-        if args.sample:
-            i = 0
+
+        for i in tqdm(range(nb_queries)):
             batch_s_emb = s_emb[i, :].view(1, -1)
             batch_p_emb = p_emb[i, :].view(1, -1)
             batch_chains = [(batch_s_emb, batch_p_emb, None)]
             batch_scores = kbc.model.link_prediction(batch_chains)
             scores_lst += [batch_scores]
 
-            scores = torch.cat(scores_lst, 0)
-            # save scores into a text file
-            torch.save(scores, args.result_path)
-        else:
-            for i in tqdm(range(nb_queries)):
-                batch_s_emb = s_emb[i, :].view(1, -1)
-                batch_p_emb = p_emb[i, :].view(1, -1)
-                batch_chains = [(batch_s_emb, batch_p_emb, None)]
-                batch_scores = kbc.model.link_prediction(batch_chains)
-                scores_lst += [batch_scores]
-
-            scores = torch.cat(scores_lst, 0)
+        scores = torch.cat(scores_lst, 0)
+        
+        if args.save_result:
+            top_k_entities, top_k_scores = torch.topk(scores, k=args.save_k, dim=1)
+            results = []
+            for i, query in enumerate(queries):
+                query_split = list(map(int, query.split('_')))
+                entity_id = query_split[0]  # first element is the entity id
+                relation_id = query_split[1]  # second element is the relation id
+                top_k_entities_list = top_k_entities[i].tolist()
+                top_k_scores_list = top_k_scores[i].tolist()
+                result = {
+                    'entity_id': entity_id,
+                    'relation_id': relation_id,
+                    'top_k_entities': top_k_entities_list,
+                    'top_k_scores': top_k_scores_list
+                }
+                results.append(result)
+            with open(args.result_path, 'w') as f:
+                json.dump(results, f, indent=4)
 
     elif args.chain_type in (QuerDAG.TYPE1_2.value, QuerDAG.TYPE1_3.value):
         scores = kbc.model.optimize_chains(chains, kbc.regularizer,

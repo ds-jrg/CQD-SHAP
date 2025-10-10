@@ -17,8 +17,9 @@ class SymbolicReasoning:
             key = (edge.get_head().get_id(), edge.get_id())
             tail_id = edge.get_tail().get_id()
             if tail_id is None:
-                print(f"Warning: Edge {edge} has no tail_id, skipping.")
-                print(f"Edge: {edge}, Head ID: {edge.get_head().get_id()}, Relation ID: {edge.get_id()}")
+                if self.logging:
+                    print(f"Warning: Edge {edge} has no tail_id, skipping.")
+                    print(f"Edge: {edge}, Head ID: {edge.get_head().get_id()}, Relation ID: {edge.get_id()}")
             else:
                 if key not in self.edge_index:
                     self.edge_index[key] = {tail_id}
