@@ -1,0 +1,1 @@
+This part is based on the [CQD](https://github.com/uclnlp/cqd/) repository, which is licensed under the MIT License.
