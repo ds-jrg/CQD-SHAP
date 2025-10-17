@@ -2,13 +2,14 @@ import pickle
 import numpy as np
 
 class Dataset:
-    def __init__(self):
+    def __init__(self, logging: bool = True):
         self.id2node = {}
         self.node2id = {}
         self.id2rel = {}
         self.rel2id = {}
         self.node2title = {}
         self.title2node = {}
+        self.logging = logging
 
     def load_key_value_files(self, filename):
         '''
@@ -42,7 +43,8 @@ class Dataset:
         id2node, node2id = self.load_key_value_files(filename)
         self.id2node = id2node
         self.node2id = node2id
-        print(f"Loaded {len(self.id2node)} nodes from {filename}.")
+        if self.logging:
+            print(f"Loaded {len(self.id2node)} nodes from {filename}.")
 
     def get_node_by_id(self, node_id):
         return self.id2node.get(node_id, None)
@@ -54,7 +56,8 @@ class Dataset:
         id2rel, rel2id = self.load_key_value_files(filename)
         self.id2rel = id2rel
         self.rel2id = rel2id
-        print(f"Loaded {len(self.id2rel)} relations from {filename}.")
+        if self.logging:
+            print(f"Loaded {len(self.id2rel)} relations from {filename}.")
 
     def get_relation_by_id(self, rel_id):
         return self.id2rel.get(rel_id, None)
@@ -66,12 +69,14 @@ class Dataset:
         try:
             node2title, title2node = self.load_key_value_files(filename)
         except:
-            print(f"Failed to load node titles from {filename}. Using entity names as titles.")
+            if self.logging:
+                print(f"Failed to load node titles from {filename}. Using entity names as titles.")
             node2title = {v: v for k, v in self.id2node.items()}
             title2node = {v: v for k, v in self.id2node.items()}
         self.node2title = node2title
         self.title2node = title2node
-        print(f"Loaded {len(self.node2title)} node titles from {filename}.")
+        if self.logging:
+            print(f"Loaded {len(self.node2title)} node titles from {filename}.")
 
 
     def get_title_by_node(self, node):
@@ -124,9 +129,10 @@ class Edge:
         return self.tail
 
 class Graph:
-    def __init__(self, dataset: Dataset):
+    def __init__(self, dataset: Dataset, logging: bool = True):
         self.dataset = dataset
         self.edges = []
+        self.logging = logging
     
     def add_edge(self, head: str, relation: str, tail: str, skip_missing: bool = True, add_reverse: bool = True):
         head_id = self.dataset.get_id_by_node(head)
@@ -161,7 +167,8 @@ class Graph:
                 for line in f:
                     head, relation, tail = line.strip().split('\t')
                     counter += self.add_edge(head, relation, tail, skip_missing, add_reverse)
-            print(f'Loaded {len(self.edges)} edges from {filename}, skipped {counter} edges due to missing nodes or relations.')
+            if self.logging:
+                print(f'Loaded {len(self.edges)} edges from {filename}, skipped {counter} edges due to missing nodes or relations.')
         except FileNotFoundError:
             raise ValueError(f'File {filename} not found')
         except Exception as e:
