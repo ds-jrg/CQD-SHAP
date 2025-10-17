@@ -4,7 +4,7 @@ This repository contains the code to reproduce the results from the paper "CQD-S
 
 **Google Colab Notebook:** You can test CQD-SHAP directly in the Google Colab environment using the following link. Colab environment has already been set up with all the necessary packages we used in our experiments.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anonymscientist/CQD-SHAP/blob/main/example_usage.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ds-jrg/CQD-SHAP/blob/main/example_usage.ipynb)
 
 ## Prerequisites
 
