@@ -1,6 +1,6 @@
 # CQD-SHAP
 
-This repository contains the code to reproduce the results from the paper "CQD-SHAP: Explainable Complex Query Answering with Shapley Values".
+This repository contains the code to reproduce the results from the paper "[CQD-SHAP: Explainable Complex Query Answering with Shapley Values](https://arxiv.org/abs/2510.15623)".
 
 **Google Colab Notebook:** You can test CQD-SHAP directly in the Google Colab environment using the following link. Colab environment has already been set up with all the necessary packages we used in our experiments.
 
@@ -105,3 +105,17 @@ python evaluation.py --kg NELL --explanation sufficient --method shapley
 ```
 
 You can change the `--method` argument to `score`, `random`, `last`, or `first` to reproduce the other baselines.
+
+## Citing This Work
+
+```bibtex
+@misc{abbasi2025cqdshapexplainablecomplexquery,
+      title={CQD-SHAP: Explainable Complex Query Answering via Shapley Values}, 
+      author={Parsa Abbasi and Stefan Heindorf},
+      year={2025},
+      eprint={2510.15623},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2510.15623}, 
+}
+```
