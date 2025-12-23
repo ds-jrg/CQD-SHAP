@@ -30,10 +30,10 @@ pip install -r requirements.txt
 
 ### Data Preparation
 
-You can download the dataset from Google Drive using [gdown](https://github.com/wkentaro/gdown).
+You can download the dataset from the following link:
 
 ```bash
-gdown https://drive.google.com/file/d/1yoZFUAY7DLOj4fC78pIU32SUSAEWRmLw
+wget https://groups.uni-paderborn.de/fg-ds-jrg/projects/cqd-shap/datasets/data.zip
 ```
 
 **Note:** Our original data is based on the [CQD](https://github.com/uclnlp/cqd/) repository. However, we made a few changes to NELL dataset to have the same format as FB15k-237 for a unified data loading process. Furthermore, we enriched FB15k-237 with titles of entities based on [KNN-KG repository](https://github.com/zjunlp/KNN-KG/tree/main/dataset/FB15k-237).
@@ -47,10 +47,10 @@ unzip data.zip
 
 ### Pre-trained Models
 
-We also use pre-trained models from [CQD](https://github.com/uclnlp/cqd/). We've provided a new file that contains only the necessary models to reduce the download size. You can download the models from Google Drive using the following command:
+We also use pre-trained models from [CQD](https://github.com/uclnlp/cqd/). We've provided a new file that contains only the necessary models to reduce the download size. You can download the models using the following command:
 
 ```bash
-gdown https://drive.google.com/file/d/1ot3CuVk4DorVu3JiHKzdumzGNaTREAU3
+wget https://groups.uni-paderborn.de/fg-ds-jrg/projects/cqd-shap/models/models.zip
 ```
 
 After downloading, run the following command to extract the models (this will create a `models` directory):
