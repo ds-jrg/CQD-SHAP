@@ -28,15 +28,15 @@ class XCQA:
             raise ValueError(f"Unsupported query type: {query_type}.")
         return atom_mapping[query_type]
     
-    def atom_predict(self, anchor: int, relation: int, mask: int, k: int = -1):
+    def atom_predict(self, anchor: int, relation: int, mask: int, k: int = -1, disj: bool = False):
         if mask == 1:
-            return self.link_prediction.predict(h_id=anchor, r_id=relation, return_df=False, k=k)
+            return self.link_prediction.predict(h_id=anchor, r_id=relation, return_df=False, k=k, score_normalize=disj)
         else:
             return self.symbolic.predict(h_id=anchor, rel_id=relation, return_df=False, k=k)
 
-    def atom_batch_predict(self, anchors: list, relations: list, mask: int, k: int = -1):
+    def atom_batch_predict(self, anchors: list, relations: list, mask: int, k: int = -1, disj: bool = False):
         if mask == 1:
-            return self.link_prediction.predict_batch(anchors, relations, k=k)
+            return self.link_prediction.predict_batch(anchors, relations, k=k, score_normalize=disj)
         else:
             return self.symbolic.predict_batch(anchors, relations, k=k)
 
@@ -118,8 +118,8 @@ class XCQA:
         """
         assert len(h_ids) == 2 and len(r_ids) == 2 and len(coalition) == 2
 
-        scores_0 = self.atom_predict(anchor=h_ids[0], relation=r_ids[0], mask=coalition[0], k=-1)
-        scores_1 = self.atom_predict(anchor=h_ids[1], relation=r_ids[1], mask=coalition[1], k=-1)
+        scores_0 = self.atom_predict(anchor=h_ids[0], relation=r_ids[0], mask=coalition[0], k=-1, disj=True)
+        scores_1 = self.atom_predict(anchor=h_ids[1], relation=r_ids[1], mask=coalition[1], k=-1 , disj=True)
 
         scores_0 = scores_0.squeeze(0)
         scores_1 = scores_1.squeeze(0)
@@ -170,6 +170,41 @@ class XCQA:
             'scores_0': scores_0.detach().cpu().numpy(),
             'scores_1': scores_1.detach().cpu().numpy(),
             'scores_2': scores_2.detach().cpu().numpy(),
+            'final_score': combined.detach().cpu().numpy()
+        })
+
+        df = df.sort_values(by="final_score", ascending=False)
+        return df
+    
+    def query_4i(self, h_ids, r_ids, coalition, k=5, t_norm: str = "prod"):
+        """
+        4i query: (h1, r1, ?) AND (h2, r2, ?) AND (h3, r3, ?) AND (h4, r4, ?)
+        Intersection of 4 projections via t_norm (prod/min/max).
+        """
+        assert len(h_ids) == 4 and len(r_ids) == 4 and len(coalition) == 4
+
+        # Get branch scores
+        scores_0 = self.atom_predict(anchor=h_ids[0], relation=r_ids[0], mask=coalition[0], k=-1).squeeze(0)
+        scores_1 = self.atom_predict(anchor=h_ids[1], relation=r_ids[1], mask=coalition[1], k=-1).squeeze(0)
+        scores_2 = self.atom_predict(anchor=h_ids[2], relation=r_ids[2], mask=coalition[2], k=-1).squeeze(0)
+        scores_3 = self.atom_predict(anchor=h_ids[3], relation=r_ids[3], mask=coalition[3], k=-1).squeeze(0)
+
+        # Intersection operator
+        if t_norm == "prod":
+            combined = scores_0 * scores_1 * scores_2 * scores_3
+        elif t_norm == "min":
+            combined = torch.min(torch.min(torch.min(scores_0, scores_1), scores_2), scores_3)
+        elif t_norm == "max":
+            combined = torch.max(torch.max(torch.max(scores_0, scores_1), scores_2), scores_3)
+        else:
+            raise ValueError(f"Unsupported t_norm: {t_norm}")
+
+        # Build dataframe
+        df = pd.DataFrame({
+            'scores_0': scores_0.detach().cpu().numpy(),
+            'scores_1': scores_1.detach().cpu().numpy(),
+            'scores_2': scores_2.detach().cpu().numpy(),
+            'scores_3': scores_3.detach().cpu().numpy(),
             'final_score': combined.detach().cpu().numpy()
         })
 
@@ -256,6 +291,122 @@ class XCQA:
         
         df = df.sort_values(by="final_score", ascending=False)
         return df
+    
+    def query_4p(self, h_id, r_ids, coalition, k=5, t_norm: str = "prod"):
+        """ 
+        4p query: (h, r1, VAR1) AND (VAR1, r2, VAR2) AND (VAR2, r3, VAR3) AND (VAR3, r4, ?)
+        Four-hop projection with intermediate k expansions.
+        """
+        # First hop
+        scores_first = self.atom_predict(anchor=h_id, relation=r_ids[0], mask=coalition[0], k=-1)
+        scores_first = scores_first.squeeze(0)  # [num_entities]
+        
+        # Get device for tensor operations
+        device = scores_first.device
+        
+        # Top-k expansion for first hop
+        topk_scores_first, topk_indices_first = torch.topk(scores_first, k)  # [k]
+        
+        # Second hop - batch predict for all k nodes from first hop
+        scores_second = self.atom_batch_predict(
+            topk_indices_first, r_ids[1], mask=coalition[1], k=-1
+        )  # [k, num_entities]
+        
+        # Find top-k for each of the k nodes from first hop
+        topk_scores_second, topk_indices_second = torch.topk(scores_second, k, dim=1)  # [k, k]
+        
+        # Combine first and second hop scores
+        if t_norm == "prod":
+            combined_second = topk_scores_second * topk_scores_first.unsqueeze(1)  # [k, k]
+        elif t_norm == "min":
+            combined_second = torch.min(topk_scores_second, topk_scores_first.unsqueeze(1))
+        elif t_norm == "max":
+            combined_second = torch.max(topk_scores_second, topk_scores_first.unsqueeze(1))
+        else:
+            raise ValueError(f"Unsupported t_norm: {t_norm}")
+        
+        # Flatten for third hop processing
+        flattened_scores_2 = combined_second.view(-1)  # [k*k]
+        flattened_indices_2 = topk_indices_second.view(-1)  # [k*k]
+        
+        # Create parent tracking - ensure on same device
+        parent_first_2 = torch.arange(k, device=device).unsqueeze(1).expand(k, k).contiguous().view(-1)  # [k*k]
+        parent_second_2 = torch.arange(k, device=device).unsqueeze(0).expand(k, k).contiguous().view(-1)  # [k*k]
+        
+        # Third hop - batch predict for all k^2 nodes
+        scores_third = self.atom_batch_predict(
+            flattened_indices_2, r_ids[2], mask=coalition[2], k=-1
+        )  # [k*k, num_entities]
+        
+        # Find top-k for each of the k^2 nodes
+        topk_scores_third, topk_indices_third = torch.topk(scores_third, k, dim=1)  # [k*k, k]
+        
+        # Combine with intermediate scores
+        if t_norm == "prod":
+            combined_third = topk_scores_third * flattened_scores_2.unsqueeze(1)  # [k*k, k]
+        elif t_norm == "min":
+            combined_third = torch.min(topk_scores_third, flattened_scores_2.unsqueeze(1))
+        elif t_norm == "max":
+            combined_third = torch.max(topk_scores_third, flattened_scores_2.unsqueeze(1))
+        else:
+            raise ValueError(f"Unsupported t_norm: {t_norm}")
+        
+        # Flatten for fourth hop processing
+        # We now have k^3 intermediate nodes
+        flattened_scores_3 = combined_third.view(-1)  # [k*k*k]
+        flattened_indices_3 = topk_indices_third.view(-1)  # [k*k*k]
+        
+        # Create parent tracking for third level - ensure on same device
+        # Track which second-level node each came from
+        parent_idx_from_second = torch.arange(k*k, device=device).unsqueeze(1).expand(k*k, k).contiguous().view(-1)  # [k*k*k]
+        # Track position within k for third hop
+        parent_third_pos = torch.arange(k, device=device).unsqueeze(0).expand(k*k, k).contiguous().view(-1)  # [k*k*k]
+        
+        # Fourth hop - batch predict for all k^3 nodes
+        scores_fourth = self.atom_batch_predict(
+            flattened_indices_3, r_ids[3], mask=coalition[3], k=-1
+        )  # [k*k*k, num_entities]
+        
+        # Combine with intermediate scores
+        if t_norm == "prod":
+            combined_final = scores_fourth * flattened_scores_3.unsqueeze(1)  # [k*k*k, num_entities]
+        elif t_norm == "min":
+            combined_final = torch.min(scores_fourth, flattened_scores_3.unsqueeze(1))
+        elif t_norm == "max":
+            combined_final = torch.max(scores_fourth, flattened_scores_3.unsqueeze(1))
+        else:
+            raise ValueError(f"Unsupported t_norm: {t_norm}")
+        
+        # Existential aggregation across all intermediate paths
+        max_scores, max_path_idx = combined_final.max(dim=0)  # [num_entities]
+        
+        # Create detailed results DataFrame - ensure col_idx is on same device
+        col_idx = torch.arange(scores_fourth.size(1), device=device)
+        
+        # Trace back the best path for each entity
+        best_path_in_third_level = parent_idx_from_second[max_path_idx]  # which k^2 node
+        best_path_third_pos = parent_third_pos[max_path_idx]  # position in third hop
+        
+        best_parent_first = parent_first_2[best_path_in_third_level]
+        best_parent_second = parent_second_2[best_path_in_third_level]
+        
+        best_intermediate_first = topk_indices_first[best_parent_first]
+        best_intermediate_second = flattened_indices_2[best_path_in_third_level]
+        best_intermediate_third = flattened_indices_3[max_path_idx]
+        
+        df = pd.DataFrame({
+            'scores_0': topk_scores_first[best_parent_first].detach().cpu().numpy(),
+            'scores_1': topk_scores_second[best_parent_first, best_parent_second].detach().cpu().numpy(),
+            'scores_2': topk_scores_third[best_path_in_third_level, best_path_third_pos].detach().cpu().numpy(),
+            'scores_3': scores_fourth[max_path_idx, col_idx].detach().cpu().numpy(),
+            'variable_0': best_intermediate_first.detach().cpu().numpy(),
+            'variable_1': best_intermediate_second.detach().cpu().numpy(),
+            'variable_2': best_intermediate_third.detach().cpu().numpy(),
+            'final_score': max_scores.detach().cpu().numpy()
+        })
+        
+        df = df.sort_values(by="final_score", ascending=False)
+        return df
 
     # 2u1p
     def query_up(self, h_ids, r_ids, coalition, k=5, 
@@ -272,9 +423,9 @@ class XCQA:
 
         # --- First two projections (union operands) ---
         scores_0 = self.atom_predict(anchor=h_ids[0], relation=r_ids[0], 
-                                    mask=coalition[0], k=-1).squeeze(0)
+                                    mask=coalition[0], k=-1, disj=True).squeeze(0)
         scores_1 = self.atom_predict(anchor=h_ids[1], relation=r_ids[1], 
-                                    mask=coalition[1], k=-1).squeeze(0)
+                                    mask=coalition[1], k=-1, disj=True).squeeze(0)
 
         # Apply union t-conorm
         if t_conorm == "prod":
@@ -482,67 +633,56 @@ class XCQA:
         if coalition is None:
             coalition = [1] * self.get_num_atoms(query.query_type)
 
+        anchors, relations = extract_anchors_relations(query)
+        anchor = anchors[0]
+
         if query.query_type == '2p':
-            anchor = query.get_query()[0][0]
-            relations = query.get_query()[0][1]
             return self.query_2p(anchor, relations, coalition, k=k, t_norm=t_norm)
 
         elif query.query_type == '2i':
-            anchors = [q[0] for q in query.get_query()]
-            relations = [q[1][0] for q in query.get_query()]
             return self.query_2i(anchors, relations, coalition, k=k, t_norm=t_norm)
 
         elif query.query_type == '2u':
-            anchors = [q[0] for q in query.get_query()]
-            relations = [q[1][0] for q in query.get_query()]
             return self.query_2u(anchors, relations, coalition, k=k, t_conorm=t_conorm)
 
         elif query.query_type == '3i':
-            anchors = [q[0] for q in query.get_query()]
-            relations = [q[1][0] for q in query.get_query()]
             return self.query_3i(anchors, relations, coalition, k=k, t_norm=t_norm)
         
+        elif query.query_type == '4i':
+            return self.query_4i(anchors, relations, coalition, k=k, t_norm=t_norm)
+        
         elif query.query_type == '3p':
-            anchor = query.get_query()[0][0]
-            relations = query.get_query()[0][1]
             return self.query_3p(anchor, relations, coalition, k=k, t_norm=t_norm)
         
+        elif query.query_type == '4p':
+            return self.query_4p(anchor, relations, coalition, k=k, t_norm=t_norm)
+
         elif query.query_type == 'up':
-            query1 = query.query[0]
-            anchor1 = query1[0]
-            relation1 = query1[1][0]
-            query2 = query.query[1]
-            anchor2 = query2[0]
-            relation2 = query2[1][0]
-            relation3 = query.query[2]
-            anchors = [anchor1, anchor2]
-            relations = [relation1, relation2, relation3]
             return self.query_up(anchors, relations, coalition, k=k, t_norm=t_norm)
 
         elif query.query_type == 'ip':
-            query1 = query.get_query()[0]
-            anchor1 = query1[0]
-            relation1 = query1[1][0]
-            query2 = query.get_query()[1]
-            anchor2 = query2[0]
-            relation2 = query2[1][0]
-            relation3 = query.get_query()[2]
-            anchors = [anchor1, anchor2]
-            relations = [relation1, relation2, relation3]
             return self.query_ip(anchors, relations, coalition, k=k, t_norm=t_norm)
         
         elif query.query_type == 'pi':
-            branch1 = query.query[0]
-            branch2 = query.query[1]
-            anchor1 = branch1[0]
-            relation1 = branch1[1][0]
-            relation2 = branch1[1][1]
-            anchor2 = branch2[0]
-            relation3 = branch2[1][0]
-            anchors = [anchor1, anchor2]
-            relations = [relation1, relation2, relation3]
             return self.query_pi(anchors, relations, coalition, k=k, t_norm=t_norm)
         
         else:
             raise ValueError(f"Unsupported query type: {query.query_type}.\n"
                              "Supported types: 2p, 2i, 2u, 3i, 3p, up (for 2u1p), ip (for 2i1p), pi (for 1p2i).")
+        
+def extract_anchors_relations(query: Query):
+    anchors = []
+    relations = []
+    atoms = query.get_atoms()
+    for atom in atoms.values():
+        # Check if head is an integer and add to anchors
+        if isinstance(atom['head'], int):
+            anchors.append(atom['head'])
+        
+        # Check if tail is an integer and add to anchors
+        if isinstance(atom['tail'], int):
+            anchors.append(atom['tail'])
+        
+        # Add relation to relations list
+        relations.append(atom['relation'])
+    return anchors, relations

@@ -30,6 +30,38 @@ pip install -r requirements.txt
 
 ### Data Preparation
 
+The benchmark datasets are based on the resource from *"Is Complex Query Answering Complex?"* paper, which can be found at [here](https://github.com/april-tools/is-cqa-complex/). You can download and extract the datasets using the following commands:
+
+```bash
+wget https://github.com/april-tools/is-cqa-complex/releases/download/benchs-1.0/iscqa-compl-benchmarks.zip
+```
+
+```bash
+unzip iscqa-compl-benchmarks.zip
+```
+
+```bash
+mkdir -p data && \mv iscqa-compl-benchmarks/new_benchmarks/* \iscqa-compl-benchmarks/old_benchmarks/* \data/ && \rm -rf iscqa-compl-benchmarks
+```
+
+The following commands will download additional files (textual descriptions of relations and entities) required for the FB15k-237+H and FB15k-237-betae datasets:
+
+```bash
+gdown 156LuCGQWZ9lmnbiRi3EzJUHRIBAFUIge
+```
+
+```bash
+unzip -q FB_extra.zip && cp -r extra data/FB15k-237+H/ && cp -r extra data/FB15k-237-betae/ && rm -rf extra
+```
+
+Execute the following command, if you want to remove the downloaded zip files to save space:
+
+```bash
+rm iscqa-compl-benchmarks.zip FB_extra.zip
+```
+
+For reproducing the results of the current arXiv paper, please download and use the original CQD datasets as follows. In that case, you need to set the `--benchmark` argument in the `evaluation.py` script to `1`.
+
 You can download the dataset from the following link:
 
 ```bash
