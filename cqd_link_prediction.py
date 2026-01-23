@@ -10,10 +10,14 @@ class LinkPrediction:
         self.device = next(self.model.parameters()).device
         # print("Successfully loaded model and set to eval mode (device: {})".format(self.device))
 
-    def predict(self, h_id, r_id, return_df=True, k=-1):
+    def predict(self, h_id, r_id, return_df=True, k=-1, score_normalize=False):
         h_emb = self.model.embeddings[0](torch.tensor([h_id], device=self.device))
         r_emb = self.model.embeddings[1](torch.tensor([r_id], device=self.device))
         scores = self.model.forward_emb(h_emb, r_emb)
+        
+        if score_normalize:
+            scores = torch.sigmoid(scores)
+            
         if return_df:
             df = pd.DataFrame(scores.cpu().detach().numpy()[0], columns=["score"])
             df = df.sort_values(by="score", ascending=False)
@@ -25,7 +29,7 @@ class LinkPrediction:
                 scores = scores.topk(k)
         return scores
     
-    def predict_batch(self, h_ids, r_ids, k=-1):
+    def predict_batch(self, h_ids, r_ids, k=-1, score_normalize=False):
         if not torch.is_tensor(h_ids):
             h_ids = torch.tensor(h_ids, device=self.device, dtype=torch.long)
 
@@ -42,6 +46,9 @@ class LinkPrediction:
         #print("h_emb:", h_emb.shape, "r_emb:", r_emb.shape)
 
         scores = self.model.forward_emb(h_emb, r_emb)  # [batch_size, num_entities]
+        
+        if score_normalize:
+            scores = torch.sigmoid(scores)
 
         if k > 0:
             scores, indices = torch.topk(scores, k, dim=1)
