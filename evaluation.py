@@ -111,7 +111,7 @@ def evaluation(hard: list,
                 atom = min((max_idx, 2), key=lambda k: importance[k])
             else:
                 atom = min(importance, key=importance.get)
-            return atom, importance[atom]
+            return atom, importance
         elif method == "shapley":
             shapley_vals = {
                 a: shapley_value(
@@ -121,13 +121,22 @@ def evaluation(hard: list,
                 for a in range(num_atoms)
             }
             atom = max(shapley_vals, key=shapley_vals.get)
-            return atom, shapley_vals[atom]
+            return atom, shapley_vals
         elif method == "random":
-            return random.randint(0, num_atoms - 1), None
+            selected_atom = random.randint(0, num_atoms - 1)
+            scores = [0] * num_atoms
+            scores[selected_atom] = 1
+            return selected_atom, scores
         elif method == "first":
-            return random.choice(get_first(query.query_type)), None
+            selected_atom = random.choice(get_first(query.query_type))
+            scores = [0] * num_atoms
+            scores[selected_atom] = 1
+            return selected_atom, scores
         elif method == "last":
-            return random.choice(get_last(query.query_type)), None
+            selected_atom = random.choice(get_last(query.query_type))
+            scores = [0] * num_atoms
+            scores[selected_atom] = 1
+            return selected_atom, scores
         else:
             raise ValueError(f"Unknown method: {method}")
 
@@ -156,7 +165,7 @@ def evaluation(hard: list,
                     xcqa.query_execution(query_hard, k=k, coalition=[1]*num_atoms, t_norm=t_norm, t_conorm=t_conorm)
                     if method == "score" and mode == "sufficient" else result_original
                 )
-                chosen_atom, best_value = choose_atom(query_hard, result_ref, hard_answer, method)
+                chosen_atom, values = choose_atom(query_hard, result_ref, hard_answer, method)
                 new_coalition = base_coalition.copy()
                 new_coalition[chosen_atom] = flip_value
 
@@ -170,10 +179,16 @@ def evaluation(hard: list,
                         "query_type": query_type,
                         "query_idx": i,
                         "target_idx": hard_answer,
+                        "values": values,
                         "best_atom": chosen_atom,
-                        "best_value": best_value,
+                        "best_value": values[chosen_atom],
                         "runtime": runtime,
                         "delta_mrr": mrr_new - mrr,
+                        "delta_hit_1": hit_1_new - hit_1,
+                        "delta_hit_3": hit_3_new - hit_3,
+                        "delta_hit_10": hit_10_new - hit_10,
+                        "mrr_before": mrr,
+                        "mrr_after": mrr_new,
                     })
             if satisfied_count != 0:
                 satisfied_per_query.append(satisfied_count)
@@ -206,6 +221,7 @@ if __name__ == "__main__":
     parser.add_argument('--explanation', default="necessary", choices=['necessary', 'sufficient'])
     parser.add_argument('--output_path', default='eval')
     parser.add_argument('--log_file')
+    parser.add_argument('--normalize', action='store_true', help='Whether to normalize scores using sigmoid')
     args = parser.parse_args()
     
     if args.benchmark == 1 and args.query_type in ['4i', '4p']:
@@ -246,10 +262,14 @@ if __name__ == "__main__":
     all_relations = list(dataset.id2rel.keys())
     logging.info(f"There are {len(all_relations)} relations in the dataset.")
 
-    output_file = os.path.join(args.output_path, f"bench{args.benchmark}_{args.explanation}_{args.query_type}_{args.method}.csv")
+    if args.query_type:
+        output_file = os.path.join(args.output_path, f"bench{args.benchmark}_{args.explanation}_{args.query_type}_{args.method}.csv")
+    else:
+        output_file = os.path.join(args.output_path, f"bench{args.benchmark}_{args.explanation}_all_{args.method}.csv")
 
     reasoner = SymbolicReasoning(graph_valid if args.split == "test" else graph_train, logging=False)
-    xcqa = XCQA(symbolic=reasoner, dataset=dataset, logging=False, model_path=args.model_path)
+    xcqa = XCQA(symbolic=reasoner, dataset=dataset, logging=False, model_path=args.model_path, normalize=args.normalize)
+    logging.info("XCQA model is initialized (normalize={})".format(args.normalize))
 
     if args.query_type:
         query_types = [args.query_type]
