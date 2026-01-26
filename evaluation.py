@@ -227,7 +227,10 @@ if __name__ == "__main__":
     if args.benchmark == 1 and args.query_type in ['4i', '4p']:
         raise ValueError("Query types '4i' and '4p' are not supported in Benchmark 1.")
     if not args.log_file:
-        log_path = os.path.join(args.output_path, f"bench{args.benchmark}_{args.explanation}_{args.query_type}_{args.method}.log")
+        if args.query_type:
+            log_path = os.path.join(args.output_path, f"bench{args.benchmark}_{args.explanation}_{args.query_type}_{args.method}.log")
+        else:
+            log_path = os.path.join(args.output_path, f"bench{args.benchmark}_{args.explanation}_all_{args.method}.log")
     else:
         log_path = args.log_file
     setup_logging(log_path)
