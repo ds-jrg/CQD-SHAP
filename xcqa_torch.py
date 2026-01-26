@@ -11,12 +11,12 @@ np.random.seed(42)
 fillna_value = 0.01
 
 class XCQA:
-    def __init__(self, symbolic: SymbolicReasoning, dataset: Dataset, logging: bool = True, model_path: str = "models/FB15k-237-model-rank-1000-epoch-100-1602508358.pt"):
+    def __init__(self, symbolic: SymbolicReasoning, dataset: Dataset, logging: bool = True, model_path: str = "models/FB15k-237-model-rank-1000-epoch-100-1602508358.pt", normalize: bool = False):
 
         self.symbolic = symbolic
         self.dataset = dataset
         self.logging = logging
-        self.link_prediction = LinkPrediction(model_path=model_path)
+        self.link_prediction = LinkPrediction(model_path=model_path, normalize=normalize)
 
     def get_num_atoms(query_type):
         """Get the number of atoms for a given query type."""

@@ -3,11 +3,12 @@ from kbc.learn import kbc_model_load
 import pandas as pd
 
 class LinkPrediction:
-    def __init__(self, model_path):
+    def __init__(self, model_path, normalize: bool = False):
         self.kbc, _, _ = kbc_model_load(model_path)
         self.model = self.kbc.model
         self.model.eval()
         self.device = next(self.model.parameters()).device
+        self.normalize = normalize
         # print("Successfully loaded model and set to eval mode (device: {})".format(self.device))
 
     def predict(self, h_id, r_id, return_df=True, k=-1, score_normalize=False):
@@ -15,7 +16,7 @@ class LinkPrediction:
         r_emb = self.model.embeddings[1](torch.tensor([r_id], device=self.device))
         scores = self.model.forward_emb(h_emb, r_emb)
         
-        if score_normalize:
+        if self.normalize or score_normalize:
             scores = torch.sigmoid(scores)
             
         if return_df:
@@ -47,7 +48,7 @@ class LinkPrediction:
 
         scores = self.model.forward_emb(h_emb, r_emb)  # [batch_size, num_entities]
         
-        if score_normalize:
+        if self.normalize or score_normalize:
             scores = torch.sigmoid(scores)
 
         if k > 0:
