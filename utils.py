@@ -200,7 +200,7 @@ def compute_metrics(result, answer_complete, target_answer):
 
     return mrr, hit_1, hit_3, hit_10
 
-def format_atom(atom, dataset: Dataset, fol_format: bool = False):
+def format_atom(atom, dataset: Dataset, fol_format: bool = False, full_relation: bool = False):
     '''
     Format an atom for display.
     
@@ -209,6 +209,7 @@ def format_atom(atom, dataset: Dataset, fol_format: bool = False):
         dataset: Dataset object for looking up names/titles
         fol_format: If True, format for FOL (e.g., "p_5(e_123, V1)")
                    If False, format for human-readable (e.g., "Alice (123) --[friend_of (5)]--> V1")
+        full_relation: If True, use full relation name instead of last part after /
     
     Returns:
         Formatted string representation of the atom
@@ -228,11 +229,12 @@ def format_atom(atom, dataset: Dataset, fol_format: bool = False):
         if isinstance(relation_id, int):
             relation_name = dataset.get_relation_by_id(relation_id)
             if relation_name:
-                # Remove +/- prefix if present
-                if relation_name.startswith(('+', '-')):
+                if relation_name.startswith('-'):
+                    relation_name = relation_name[1:] + '_reverse'
+                elif relation_name.startswith('+'):
                     relation_name = relation_name[1:]
                 # Extract the last part after the final /
-                if '/' in relation_name:
+                if '/' in relation_name and not full_relation:
                     rel_str = relation_name.split('/')[-1]
                 else:
                     rel_str = relation_name
@@ -258,6 +260,13 @@ def format_atom(atom, dataset: Dataset, fol_format: bool = False):
         
         if isinstance(relation_id, int):
             relation_name = dataset.get_relation_by_id(relation_id)
+            if relation_name:
+                if relation_name.startswith('-'):
+                    relation_name = relation_name[1:] + '_reverse'
+                elif relation_name.startswith('+'):
+                    relation_name = relation_name[1:]
+            if '/' in relation_name and not full_relation:
+                relation_name = relation_name.split('/')[-1]
             relation_str = f"{relation_name} ({relation_id})"
         else:
             relation_str = relation_id  # should not happen
@@ -271,7 +280,7 @@ def format_atom(atom, dataset: Dataset, fol_format: bool = False):
         return f"{head_str} --[{relation_str}]--> {tail_str}"
 
 
-def human_readable(query: Query, dataset: Dataset, fol: bool = False):
+def human_readable(query: Query, dataset: Dataset, fol: bool = False, full_relation: bool = False):
     '''
     Convert a Query object to a human-readable string using the dataset's entity and relation mappings.
     For example, 2p query should look like:
@@ -282,17 +291,17 @@ def human_readable(query: Query, dataset: Dataset, fol: bool = False):
     If fol=True, returns the FOL representation instead.
     '''
     if fol:
-        return _generate_fol(query, dataset)
+        return _generate_fol(query, dataset, full_relation=full_relation)
     
     atoms = query.get_atoms()
     lines = []
     for index, atom in atoms.items():
-        line = format_atom(atom, dataset, fol_format=False)
+        line = format_atom(atom, dataset, fol_format=False, full_relation=full_relation)
         lines.append(line)
     return "\n".join(lines)
 
 
-def _generate_fol(query: Query, dataset: Dataset):
+def _generate_fol(query: Query, dataset: Dataset, full_relation: bool = False):
     '''
     Generate FOL (First-Order Logic) representation of a query.
     '''
@@ -301,76 +310,76 @@ def _generate_fol(query: Query, dataset: Dataset):
     
     if query_type == '1p':
         # ?V1: p1(e1, V1)
-        atom = format_atom(atoms[0], dataset, fol_format=True)
+        atom = format_atom(atoms[0], dataset, fol_format=True, full_relation=full_relation)
         return f"?V1: {atom}"
     
     elif query_type == '2p':
         # ?V2: ∃V1 · p1(e1, V1) ∧ p2(V1, V2)
-        atom0 = format_atom(atoms[0], dataset, fol_format=True)
-        atom1 = format_atom(atoms[1], dataset, fol_format=True)
+        atom0 = format_atom(atoms[0], dataset, fol_format=True, full_relation=full_relation)
+        atom1 = format_atom(atoms[1], dataset, fol_format=True, full_relation=full_relation)
         return f"?V2: ∃V1 · {atom0} ∧ {atom1}"
     
     elif query_type == '3p':
         # ?V3: ∃V1, V2 · p1(e1, V1) ∧ p2(V1, V2) ∧ p3(V2, V3)
-        atom0 = format_atom(atoms[0], dataset, fol_format=True)
-        atom1 = format_atom(atoms[1], dataset, fol_format=True)
-        atom2 = format_atom(atoms[2], dataset, fol_format=True)
+        atom0 = format_atom(atoms[0], dataset, fol_format=True, full_relation=full_relation)
+        atom1 = format_atom(atoms[1], dataset, fol_format=True, full_relation=full_relation)
+        atom2 = format_atom(atoms[2], dataset, fol_format=True, full_relation=full_relation)
         return f"?V3: ∃V1, V2 · {atom0} ∧ {atom1} ∧ {atom2}"
     
     elif query_type == '4p':
         # ?V4: ∃V1, V2, V3 · p1(e1, V1) ∧ p2(V1, V2) ∧ p3(V2, V3) ∧ p4(V3, V4)
-        atom0 = format_atom(atoms[0], dataset, fol_format=True)
-        atom1 = format_atom(atoms[1], dataset, fol_format=True)
-        atom2 = format_atom(atoms[2], dataset, fol_format=True)
-        atom3 = format_atom(atoms[3], dataset, fol_format=True)
+        atom0 = format_atom(atoms[0], dataset, fol_format=True, full_relation=full_relation)
+        atom1 = format_atom(atoms[1], dataset, fol_format=True, full_relation=full_relation)
+        atom2 = format_atom(atoms[2], dataset, fol_format=True, full_relation=full_relation)
+        atom3 = format_atom(atoms[3], dataset, fol_format=True, full_relation=full_relation)
         return f"?V4: ∃V1, V2, V3 · {atom0} ∧ {atom1} ∧ {atom2} ∧ {atom3}"
     
     elif query_type == '2i':
         # ?V1: p1(e1, V1) ∧ p2(e2, V1)
-        atom0 = format_atom(atoms[0], dataset, fol_format=True)
-        atom1 = format_atom(atoms[1], dataset, fol_format=True)
+        atom0 = format_atom(atoms[0], dataset, fol_format=True, full_relation=full_relation)
+        atom1 = format_atom(atoms[1], dataset, fol_format=True, full_relation=full_relation)
         return f"?V1: {atom0} ∧ {atom1}"
     
     elif query_type == '3i':
         # ?V1: p1(e1, V1) ∧ p2(e2, V1) ∧ p3(e3, V1)
-        atom0 = format_atom(atoms[0], dataset, fol_format=True)
-        atom1 = format_atom(atoms[1], dataset, fol_format=True)
-        atom2 = format_atom(atoms[2], dataset, fol_format=True)
+        atom0 = format_atom(atoms[0], dataset, fol_format=True, full_relation=full_relation)
+        atom1 = format_atom(atoms[1], dataset, fol_format=True, full_relation=full_relation)
+        atom2 = format_atom(atoms[2], dataset, fol_format=True, full_relation=full_relation)
         return f"?V1: {atom0} ∧ {atom1} ∧ {atom2}"
     
     elif query_type == '4i':
         # ?V1: p1(e1, V1) ∧ p2(e2, V1) ∧ p3(e3, V1) ∧ p4(e4, V1)
-        atom0 = format_atom(atoms[0], dataset, fol_format=True)
-        atom1 = format_atom(atoms[1], dataset, fol_format=True)
-        atom2 = format_atom(atoms[2], dataset, fol_format=True)
-        atom3 = format_atom(atoms[3], dataset, fol_format=True)
+        atom0 = format_atom(atoms[0], dataset, fol_format=True, full_relation=full_relation)
+        atom1 = format_atom(atoms[1], dataset, fol_format=True, full_relation=full_relation)
+        atom2 = format_atom(atoms[2], dataset, fol_format=True, full_relation=full_relation)
+        atom3 = format_atom(atoms[3], dataset, fol_format=True, full_relation=full_relation)
         return f"?V1: {atom0} ∧ {atom1} ∧ {atom2} ∧ {atom3}"
     
     elif query_type == '2u':
         # ?V1: p1(e1, V1) ∨ p2(e2, V1)
-        atom0 = format_atom(atoms[0], dataset, fol_format=True)
-        atom1 = format_atom(atoms[1], dataset, fol_format=True)
+        atom0 = format_atom(atoms[0], dataset, fol_format=True, full_relation=full_relation)
+        atom1 = format_atom(atoms[1], dataset, fol_format=True, full_relation=full_relation)
         return f"?V1: {atom0} ∨ {atom1}"
     
     elif query_type == 'up':  # 2u1p
         # ?V2: ∃V1 · (p1(e1, V1) ∨ p2(e2, V1)) ∧ p3(V1, V2)
-        atom0 = format_atom(atoms[0], dataset, fol_format=True)
-        atom1 = format_atom(atoms[1], dataset, fol_format=True)
-        atom2 = format_atom(atoms[2], dataset, fol_format=True)
+        atom0 = format_atom(atoms[0], dataset, fol_format=True, full_relation=full_relation)
+        atom1 = format_atom(atoms[1], dataset, fol_format=True, full_relation=full_relation)
+        atom2 = format_atom(atoms[2], dataset, fol_format=True, full_relation=full_relation)
         return f"?V2: ∃V1 · ({atom0} ∨ {atom1}) ∧ {atom2}"
     
     elif query_type == 'ip':  # 2i1p
         # ?V2: ∃V1 · p1(e1, V1) ∧ p2(e2, V1) ∧ p3(V1, V2)
-        atom0 = format_atom(atoms[0], dataset, fol_format=True)
-        atom1 = format_atom(atoms[1], dataset, fol_format=True)
-        atom2 = format_atom(atoms[2], dataset, fol_format=True)
+        atom0 = format_atom(atoms[0], dataset, fol_format=True, full_relation=full_relation)
+        atom1 = format_atom(atoms[1], dataset, fol_format=True, full_relation=full_relation)
+        atom2 = format_atom(atoms[2], dataset, fol_format=True, full_relation=full_relation)
         return f"?V2: ∃V1 · {atom0} ∧ {atom1} ∧ {atom2}"
     
     elif query_type == 'pi':  # 1p2i
         # ?V2: ∃V1 · p1(e1, V1) ∧ p2(V1, V2) ∧ p3(e2, V2)
-        atom0 = format_atom(atoms[0], dataset, fol_format=True)
-        atom1 = format_atom(atoms[1], dataset, fol_format=True)
-        atom2 = format_atom(atoms[2], dataset, fol_format=True)
+        atom0 = format_atom(atoms[0], dataset, fol_format=True, full_relation=full_relation)
+        atom1 = format_atom(atoms[1], dataset, fol_format=True, full_relation=full_relation)
+        atom2 = format_atom(atoms[2], dataset, fol_format=True, full_relation=full_relation)
         return f"?V2: ∃V1 · {atom0} ∧ {atom1} ∧ {atom2}"
     
     else:
