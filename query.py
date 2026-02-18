@@ -67,24 +67,24 @@ def extract_atoms_from_query(query: tuple, query_type: str):
     if query_type in ['1p', '2p', '3p', '4p']:
         anchor = query[0][0]
         relations = query[0][1]
-        atom0 = {'head': anchor, 'relation': relations[0], 'tail': 'V1'}
+        atom0 = {'head': anchor, 'relation': relations[0], 'tail': 'V0'}
         atoms[0] = atom0
         for i in range(1, len(relations)):
-            atom = {'head': f'V{i}', 'relation': relations[i], 'tail': f'V{i+1}'}
+            atom = {'head': f'V{i-1}', 'relation': relations[i], 'tail': f'V{i}'}
             atoms[i] = atom
     elif query_type in ['2i', '3i', '4i']:
         for j in range(len(query)):
             branch = query[j]
             anchor = branch[0]
             relation, = branch[1]
-            atom = {'head': anchor, 'relation': relation, 'tail': 'V1'}
+            atom = {'head': anchor, 'relation': relation, 'tail': 'V0'}
             atoms[j] = atom
     elif query_type == '2u':
         for j in range(2):
             branch = query[j]
             anchor = branch[0]
             relation, = branch[1]
-            atom = {'head': anchor, 'relation': relation, 'tail': 'V1'}
+            atom = {'head': anchor, 'relation': relation, 'tail': 'V0'}
             atoms[j] = atom
     elif query_type == 'up':
         atom1 = query[0]
@@ -94,9 +94,9 @@ def extract_atoms_from_query(query: tuple, query_type: str):
         relation1 = atom1[1][0]
         relation2 = atom2[1][0]
         relation3 = query[2]
-        atom_0 = {'head': anchor1, 'relation': relation1, 'tail': 'V1'}
-        atom_1 = {'head': anchor2, 'relation': relation2, 'tail': 'V1'}
-        atom_2 = {'head': 'V1', 'relation': relation3, 'tail': 'V2'}
+        atom_0 = {'head': anchor1, 'relation': relation1, 'tail': 'V0'}
+        atom_1 = {'head': anchor2, 'relation': relation2, 'tail': 'V0'}
+        atom_2 = {'head': 'V0', 'relation': relation3, 'tail': 'V1'}
         atoms[0] = atom_0
         atoms[1] = atom_1
         atoms[2] = atom_2
@@ -108,9 +108,9 @@ def extract_atoms_from_query(query: tuple, query_type: str):
         relation1 = atom1[1][0]
         relation2 = atom2[1][0]
         relation3 = query[2]
-        atom_0 = {'head': anchor1, 'relation': relation1, 'tail': 'V1'}
-        atom_1 = {'head': anchor2, 'relation': relation2, 'tail': 'V1'}
-        atom_2 = {'head': 'V1', 'relation': relation3, 'tail': 'V2'}
+        atom_0 = {'head': anchor1, 'relation': relation1, 'tail': 'V0'}
+        atom_1 = {'head': anchor2, 'relation': relation2, 'tail': 'V0'}
+        atom_2 = {'head': 'V0', 'relation': relation3, 'tail': 'V1'}
         atoms[0] = atom_0
         atoms[1] = atom_1
         atoms[2] = atom_2
@@ -121,9 +121,9 @@ def extract_atoms_from_query(query: tuple, query_type: str):
         anchor2 = atom2[0]
         relation1, relation2 = atom1[1]
         relation3 = atom2[1][0]
-        atom_0 = {'head': anchor1, 'relation': relation1, 'tail': 'V1'}
-        atom_1 = {'head': 'V1', 'relation': relation2, 'tail': 'V2'}
-        atom_2 = {'head': anchor2, 'relation': relation3, 'tail': 'V2'}
+        atom_0 = {'head': anchor1, 'relation': relation1, 'tail': 'V0'}
+        atom_1 = {'head': 'V0', 'relation': relation2, 'tail': 'V1'}
+        atom_2 = {'head': anchor2, 'relation': relation3, 'tail': 'V1'}
         atoms[0] = atom_0
         atoms[1] = atom_1
         atoms[2] = atom_2
