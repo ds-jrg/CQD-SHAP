@@ -1,0 +1,177 @@
+2026-01-30 15:01:23,770 [INFO] Logging to evaluation_benchmark1/Freebase/bench1_all_shapley.log and console.
+2026-01-30 15:01:23,770 [INFO] Evaluating explanations using shapley on Freebase KG
+2026-01-30 15:01:23,770 [INFO] Model path: models/FB15k-237-model-rank-1000-epoch-100-1602508358.pt
+2026-01-30 15:01:30,664 [INFO] Dataset and Graphs are set up.
+2026-01-30 15:01:31,826 [INFO] Queries are loaded.
+2026-01-30 15:01:31,826 [INFO] There are 474 relations in the dataset.
+2026-01-30 15:01:34,546 [INFO] XCQA model is initialized (normalize=False)
+2026-01-30 15:01:34,546 [INFO] Processing query type: 2u
+2026-01-30 15:06:32,631 [INFO] 
+=== Metrics Summary for query type: 2u ===
+2026-01-30 15:06:32,635 [INFO] MRR   : before=0.2474 | after=0.0041 | Δ=-0.2432
+2026-01-30 15:06:32,637 [INFO] HIT_1 : before=0.1433 | after=0.0007 | Δ=-0.1426
+2026-01-30 15:06:32,638 [INFO] HIT_3 : before=0.2812 | after=0.0024 | Δ=-0.2788
+2026-01-30 15:06:32,640 [INFO] HIT_10: before=0.4639 | after=0.0076 | Δ=-0.4562
+2026-01-30 15:06:32,641 [INFO] Condition satisfaction: avg per-query = 3.4588, total satisfied = 17294, total queries = 5000
+2026-01-30 15:06:32,641 [INFO] ================================================================================
+
+2026-01-30 15:06:32,641 [INFO] 
+=== Metrics Summary for query type: 2u ===
+2026-01-30 15:06:32,645 [INFO] MRR   : before=0.0006 | after=0.3490 | Δ=+0.3484
+2026-01-30 15:06:32,647 [INFO] HIT_1 : before=0.0001 | after=0.2502 | Δ=+0.2501
+2026-01-30 15:06:32,648 [INFO] HIT_3 : before=0.0001 | after=0.3843 | Δ=+0.3842
+2026-01-30 15:06:32,650 [INFO] HIT_10: before=0.0003 | after=0.5568 | Δ=+0.5565
+2026-01-30 15:06:32,651 [INFO] Condition satisfaction: avg per-query = 3.4588, total satisfied = 17294, total queries = 5000
+2026-01-30 15:06:32,651 [INFO] ================================================================================
+
+2026-01-30 15:06:32,651 [INFO] Finished processing query type: 2u
+2026-01-30 15:06:32,651 [INFO] --------------------------------------------------------------------------------
+2026-01-30 15:06:32,651 [INFO] Processing query type: 2i
+2026-01-30 15:17:59,241 [INFO] 
+=== Metrics Summary for query type: 2i ===
+2026-01-30 15:17:59,245 [INFO] MRR   : before=0.3055 | after=0.0428 | Δ=-0.2627
+2026-01-30 15:17:59,247 [INFO] HIT_1 : before=0.1972 | after=0.0104 | Δ=-0.1868
+2026-01-30 15:17:59,250 [INFO] HIT_3 : before=0.3515 | after=0.0356 | Δ=-0.3159
+2026-01-30 15:17:59,252 [INFO] HIT_10: before=0.5218 | after=0.1084 | Δ=-0.4135
+2026-01-30 15:17:59,253 [INFO] Condition satisfaction: avg per-query = 9.7834, total satisfied = 48917, total queries = 5000
+2026-01-30 15:17:59,253 [INFO] ================================================================================
+
+2026-01-30 15:17:59,253 [INFO] 
+=== Metrics Summary for query type: 2i ===
+2026-01-30 15:17:59,257 [INFO] MRR   : before=0.0781 | after=0.4866 | Δ=+0.4086
+2026-01-30 15:17:59,260 [INFO] HIT_1 : before=0.0323 | after=0.3825 | Δ=+0.3502
+2026-01-30 15:17:59,262 [INFO] HIT_3 : before=0.0799 | after=0.5412 | Δ=+0.4612
+2026-01-30 15:17:59,265 [INFO] HIT_10: before=0.1682 | after=0.6862 | Δ=+0.5180
+2026-01-30 15:17:59,265 [INFO] Condition satisfaction: avg per-query = 9.7834, total satisfied = 48917, total queries = 5000
+2026-01-30 15:17:59,265 [INFO] ================================================================================
+
+2026-01-30 15:17:59,266 [INFO] Finished processing query type: 2i
+2026-01-30 15:17:59,266 [INFO] --------------------------------------------------------------------------------
+2026-01-30 15:17:59,266 [INFO] Processing query type: 3i
+2026-01-30 15:37:29,104 [INFO] 
+=== Metrics Summary for query type: 3i ===
+2026-01-30 15:37:29,109 [INFO] MRR   : before=0.4121 | after=0.0407 | Δ=-0.3714
+2026-01-30 15:37:29,110 [INFO] HIT_1 : before=0.3062 | after=0.0022 | Δ=-0.3041
+2026-01-30 15:37:29,112 [INFO] HIT_3 : before=0.4570 | after=0.0346 | Δ=-0.4225
+2026-01-30 15:37:29,114 [INFO] HIT_10: before=0.6286 | after=0.1199 | Δ=-0.5087
+2026-01-30 15:37:29,115 [INFO] Condition satisfaction: avg per-query = 7.5490, total satisfied = 37745, total queries = 5000
+2026-01-30 15:37:29,115 [INFO] ================================================================================
+
+2026-01-30 15:37:29,115 [INFO] 
+=== Metrics Summary for query type: 3i ===
+2026-01-30 15:37:29,119 [INFO] MRR   : before=0.2245 | after=0.6472 | Δ=+0.4227
+2026-01-30 15:37:29,122 [INFO] HIT_1 : before=0.1390 | after=0.5672 | Δ=+0.4282
+2026-01-30 15:37:29,124 [INFO] HIT_3 : before=0.2539 | after=0.6954 | Δ=+0.4415
+2026-01-30 15:37:29,126 [INFO] HIT_10: before=0.3907 | after=0.7943 | Δ=+0.4036
+2026-01-30 15:37:29,127 [INFO] Condition satisfaction: avg per-query = 7.5490, total satisfied = 37745, total queries = 5000
+2026-01-30 15:37:29,127 [INFO] ================================================================================
+
+2026-01-30 15:37:29,128 [INFO] Finished processing query type: 3i
+2026-01-30 15:37:29,128 [INFO] --------------------------------------------------------------------------------
+2026-01-30 15:37:29,128 [INFO] Processing query type: up
+2026-01-30 16:10:58,397 [INFO] 
+=== Metrics Summary for query type: up ===
+2026-01-30 16:10:58,402 [INFO] MRR   : before=0.1889 | after=0.0599 | Δ=-0.1289
+2026-01-30 16:10:58,404 [INFO] HIT_1 : before=0.1141 | after=0.0371 | Δ=-0.0770
+2026-01-30 16:10:58,406 [INFO] HIT_3 : before=0.2032 | after=0.0668 | Δ=-0.1364
+2026-01-30 16:10:58,408 [INFO] HIT_10: before=0.3430 | after=0.1067 | Δ=-0.2363
+2026-01-30 16:10:58,409 [INFO] Condition satisfaction: avg per-query = 11.2860, total satisfied = 56430, total queries = 5000
+2026-01-30 16:10:58,409 [INFO] ================================================================================
+
+2026-01-30 16:10:58,409 [INFO] 
+=== Metrics Summary for query type: up ===
+2026-01-30 16:10:58,413 [INFO] MRR   : before=0.0147 | after=0.2585 | Δ=+0.2438
+2026-01-30 16:10:58,415 [INFO] HIT_1 : before=0.0130 | after=0.1816 | Δ=+0.1685
+2026-01-30 16:10:58,417 [INFO] HIT_3 : before=0.0155 | after=0.2766 | Δ=+0.2612
+2026-01-30 16:10:58,420 [INFO] HIT_10: before=0.0163 | after=0.4131 | Δ=+0.3968
+2026-01-30 16:10:58,420 [INFO] Condition satisfaction: avg per-query = 11.2860, total satisfied = 56430, total queries = 5000
+2026-01-30 16:10:58,420 [INFO] ================================================================================
+
+2026-01-30 16:10:58,421 [INFO] Finished processing query type: up
+2026-01-30 16:10:58,421 [INFO] --------------------------------------------------------------------------------
+2026-01-30 16:10:58,421 [INFO] Processing query type: 2p
+2026-01-30 16:36:14,391 [INFO] 
+=== Metrics Summary for query type: 2p ===
+2026-01-30 16:36:14,396 [INFO] MRR   : before=0.2606 | after=0.1082 | Δ=-0.1524
+2026-01-30 16:36:14,398 [INFO] HIT_1 : before=0.1814 | after=0.0701 | Δ=-0.1113
+2026-01-30 16:36:14,400 [INFO] HIT_3 : before=0.2810 | after=0.1170 | Δ=-0.1639
+2026-01-30 16:36:14,403 [INFO] HIT_10: before=0.4206 | after=0.1932 | Δ=-0.2274
+2026-01-30 16:36:14,404 [INFO] Condition satisfaction: avg per-query = 19.7102, total satisfied = 98551, total queries = 5000
+2026-01-30 16:36:14,404 [INFO] ================================================================================
+
+2026-01-30 16:36:14,404 [INFO] 
+=== Metrics Summary for query type: 2p ===
+2026-01-30 16:36:14,408 [INFO] MRR   : before=0.0148 | after=0.3328 | Δ=+0.3181
+2026-01-30 16:36:14,410 [INFO] HIT_1 : before=0.0137 | after=0.2573 | Δ=+0.2437
+2026-01-30 16:36:14,413 [INFO] HIT_3 : before=0.0144 | after=0.3534 | Δ=+0.3389
+2026-01-30 16:36:14,415 [INFO] HIT_10: before=0.0153 | after=0.4830 | Δ=+0.4677
+2026-01-30 16:36:14,416 [INFO] Condition satisfaction: avg per-query = 19.7102, total satisfied = 98551, total queries = 5000
+2026-01-30 16:36:14,416 [INFO] ================================================================================
+
+2026-01-30 16:36:14,417 [INFO] Finished processing query type: 2p
+2026-01-30 16:36:14,417 [INFO] --------------------------------------------------------------------------------
+2026-01-30 16:36:14,417 [INFO] Processing query type: pi
+2026-01-30 18:42:23,156 [INFO] 
+=== Metrics Summary for query type: pi ===
+2026-01-30 18:42:23,161 [INFO] MRR   : before=0.2245 | after=0.0616 | Δ=-0.1629
+2026-01-30 18:42:23,164 [INFO] HIT_1 : before=0.1465 | after=0.0294 | Δ=-0.1172
+2026-01-30 18:42:23,166 [INFO] HIT_3 : before=0.2443 | after=0.0610 | Δ=-0.1833
+2026-01-30 18:42:23,169 [INFO] HIT_10: before=0.3794 | after=0.1205 | Δ=-0.2589
+2026-01-30 18:42:23,170 [INFO] Condition satisfaction: avg per-query = 40.5062, total satisfied = 202531, total queries = 5000
+2026-01-30 18:42:23,170 [INFO] ================================================================================
+
+2026-01-30 18:42:23,170 [INFO] 
+=== Metrics Summary for query type: pi ===
+2026-01-30 18:42:23,174 [INFO] MRR   : before=0.0802 | after=0.3729 | Δ=+0.2927
+2026-01-30 18:42:23,177 [INFO] HIT_1 : before=0.0443 | after=0.2891 | Δ=+0.2447
+2026-01-30 18:42:23,180 [INFO] HIT_3 : before=0.0805 | after=0.4064 | Δ=+0.3259
+2026-01-30 18:42:23,183 [INFO] HIT_10: before=0.1489 | after=0.5353 | Δ=+0.3865
+2026-01-30 18:42:23,184 [INFO] Condition satisfaction: avg per-query = 40.5062, total satisfied = 202531, total queries = 5000
+2026-01-30 18:42:23,184 [INFO] ================================================================================
+
+2026-01-30 18:42:23,185 [INFO] Finished processing query type: pi
+2026-01-30 18:42:23,185 [INFO] --------------------------------------------------------------------------------
+2026-01-30 18:42:23,185 [INFO] Processing query type: ip
+2026-01-30 22:21:37,059 [INFO] 
+=== Metrics Summary for query type: ip ===
+2026-01-30 22:21:37,065 [INFO] MRR   : before=0.1728 | after=0.0461 | Δ=-0.1267
+2026-01-30 22:21:37,067 [INFO] HIT_1 : before=0.1083 | after=0.0234 | Δ=-0.0848
+2026-01-30 22:21:37,070 [INFO] HIT_3 : before=0.1855 | after=0.0473 | Δ=-0.1381
+2026-01-30 22:21:37,074 [INFO] HIT_10: before=0.2970 | after=0.0895 | Δ=-0.2075
+2026-01-30 22:21:37,075 [INFO] Condition satisfaction: avg per-query = 69.5426, total satisfied = 347713, total queries = 5000
+2026-01-30 22:21:37,075 [INFO] ================================================================================
+
+2026-01-30 22:21:37,075 [INFO] 
+=== Metrics Summary for query type: ip ===
+2026-01-30 22:21:37,079 [INFO] MRR   : before=0.0153 | after=0.2384 | Δ=+0.2232
+2026-01-30 22:21:37,082 [INFO] HIT_1 : before=0.0103 | after=0.1735 | Δ=+0.1632
+2026-01-30 22:21:37,084 [INFO] HIT_3 : before=0.0159 | after=0.2518 | Δ=+0.2359
+2026-01-30 22:21:37,087 [INFO] HIT_10: before=0.0243 | after=0.3693 | Δ=+0.3450
+2026-01-30 22:21:37,088 [INFO] Condition satisfaction: avg per-query = 69.5426, total satisfied = 347713, total queries = 5000
+2026-01-30 22:21:37,088 [INFO] ================================================================================
+
+2026-01-30 22:21:37,089 [INFO] Finished processing query type: ip
+2026-01-30 22:21:37,089 [INFO] --------------------------------------------------------------------------------
+2026-01-30 22:21:37,089 [INFO] Processing query type: 3p
+2026-01-30 23:58:39,385 [INFO] 
+=== Metrics Summary for query type: 3p ===
+2026-01-30 23:58:39,390 [INFO] MRR   : before=0.2086 | after=0.0972 | Δ=-0.1114
+2026-01-30 23:58:39,393 [INFO] HIT_1 : before=0.1409 | after=0.0614 | Δ=-0.0795
+2026-01-30 23:58:39,395 [INFO] HIT_3 : before=0.2227 | after=0.1014 | Δ=-0.1213
+2026-01-30 23:58:39,398 [INFO] HIT_10: before=0.3436 | after=0.1741 | Δ=-0.1694
+2026-01-30 23:58:39,399 [INFO] Condition satisfaction: avg per-query = 31.9398, total satisfied = 159699, total queries = 5000
+2026-01-30 23:58:39,399 [INFO] ================================================================================
+
+2026-01-30 23:58:39,399 [INFO] 
+=== Metrics Summary for query type: 3p ===
+2026-01-30 23:58:39,404 [INFO] MRR   : before=0.0214 | after=0.2882 | Δ=+0.2668
+2026-01-30 23:58:39,406 [INFO] HIT_1 : before=0.0196 | after=0.2232 | Δ=+0.2036
+2026-01-30 23:58:39,408 [INFO] HIT_3 : before=0.0208 | after=0.3036 | Δ=+0.2828
+2026-01-30 23:58:39,411 [INFO] HIT_10: before=0.0253 | after=0.4162 | Δ=+0.3909
+2026-01-30 23:58:39,412 [INFO] Condition satisfaction: avg per-query = 31.9398, total satisfied = 159699, total queries = 5000
+2026-01-30 23:58:39,412 [INFO] ================================================================================
+
+2026-01-30 23:58:39,413 [INFO] Finished processing query type: 3p
+2026-01-30 23:58:39,413 [INFO] --------------------------------------------------------------------------------
+2026-01-30 23:58:48,872 [INFO] ✅ Saved all intermediate steps to evaluation_benchmark1/Freebase/bench1_all_shapley_necessary.csv
+2026-01-30 23:58:58,210 [INFO] ✅ Saved all intermediate steps to evaluation_benchmark1/Freebase/bench1_all_shapley_sufficient.csv
