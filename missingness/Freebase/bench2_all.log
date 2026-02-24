@@ -1,0 +1,223 @@
+2026-02-19 18:38:19,643 [INFO] Logging to missingness/Freebase/bench2_all.log and console.
+2026-02-19 18:38:19,643 [INFO] Computing stats for KG: Freebase, Benchmark: 2, Query type: ALL
+2026-02-19 18:38:19,643 [INFO] Model path: models/FB15k-237-model-rank-1000-epoch-100-1602508358.pt
+2026-02-19 18:38:28,028 [INFO] Dataset and Graphs are set up.
+2026-02-19 18:38:48,334 [INFO] Queries are loaded.
+2026-02-19 18:38:48,337 [INFO] There are 474 relations in the dataset.
+2026-02-19 18:38:50,972 [INFO] XCQA model is initialized (normalize=False)
+2026-02-19 18:38:50,972 [INFO] 
+
+=== Processing query type: 2u ===
+2026-02-19 18:39:22,463 [INFO] 
+Query type: 2u
+2026-02-19 18:39:22,463 [INFO] Total QA pairs: 10000
+
+2026-02-19 18:39:22,463 [INFO] Missing link combinations:
+
+2026-02-19 18:39:22,463 [INFO] (True, True)  ->  Count: 10000 | Frequency: 1.000000
+2026-02-19 18:39:22,463 [INFO] 
+Per-atom missing counts:
+
+2026-02-19 18:39:22,463 [INFO] Atom 0 missed -> Count: 10000 | Frequency: 1.000000
+2026-02-19 18:39:22,463 [INFO] Atom 1 missed -> Count: 10000 | Frequency: 1.000000
+2026-02-19 18:39:22,463 [INFO] 
+
+=== Processing query type: 2i ===
+2026-02-19 18:40:16,135 [INFO] 
+Query type: 2i
+2026-02-19 18:40:16,135 [INFO] Total QA pairs: 20000
+
+2026-02-19 18:40:16,136 [INFO] Missing link combinations:
+
+2026-02-19 18:40:16,136 [INFO] (False, True)  ->  Count: 4849 | Frequency: 0.242450
+2026-02-19 18:40:16,136 [INFO] (True, False)  ->  Count: 5151 | Frequency: 0.257550
+2026-02-19 18:40:16,136 [INFO] (True, True)  ->  Count: 10000 | Frequency: 0.500000
+2026-02-19 18:40:16,136 [INFO] 
+Per-atom missing counts:
+
+2026-02-19 18:40:16,136 [INFO] Atom 0 missed -> Count: 15151 | Frequency: 0.757550
+2026-02-19 18:40:16,136 [INFO] Atom 1 missed -> Count: 14849 | Frequency: 0.742450
+2026-02-19 18:40:16,136 [INFO] 
+
+=== Processing query type: 3i ===
+2026-02-19 18:42:08,253 [INFO] 
+Query type: 3i
+2026-02-19 18:42:08,253 [INFO] Total QA pairs: 30000
+
+2026-02-19 18:42:08,253 [INFO] Missing link combinations:
+
+2026-02-19 18:42:08,253 [INFO] (False, False, True)  ->  Count: 3276 | Frequency: 0.109200
+2026-02-19 18:42:08,253 [INFO] (False, True, False)  ->  Count: 3378 | Frequency: 0.112600
+2026-02-19 18:42:08,253 [INFO] (False, True, True)  ->  Count: 3291 | Frequency: 0.109700
+2026-02-19 18:42:08,253 [INFO] (True, False, False)  ->  Count: 3346 | Frequency: 0.111533
+2026-02-19 18:42:08,253 [INFO] (True, False, True)  ->  Count: 3368 | Frequency: 0.112267
+2026-02-19 18:42:08,253 [INFO] (True, True, False)  ->  Count: 3341 | Frequency: 0.111367
+2026-02-19 18:42:08,253 [INFO] (True, True, True)  ->  Count: 10000 | Frequency: 0.333333
+2026-02-19 18:42:08,253 [INFO] 
+Per-atom missing counts:
+
+2026-02-19 18:42:08,253 [INFO] Atom 0 missed -> Count: 20055 | Frequency: 0.668500
+2026-02-19 18:42:08,253 [INFO] Atom 1 missed -> Count: 20010 | Frequency: 0.667000
+2026-02-19 18:42:08,253 [INFO] Atom 2 missed -> Count: 19935 | Frequency: 0.664500
+2026-02-19 18:42:08,253 [INFO] 
+
+=== Processing query type: 4i ===
+2026-02-19 18:45:26,293 [INFO] 
+Query type: 4i
+2026-02-19 18:45:26,293 [INFO] Total QA pairs: 40000
+
+2026-02-19 18:45:26,293 [INFO] Missing link combinations:
+
+2026-02-19 18:45:26,293 [INFO] (False, False, False, True)  ->  Count: 2484 | Frequency: 0.062100
+2026-02-19 18:45:26,293 [INFO] (False, False, True, False)  ->  Count: 2401 | Frequency: 0.060025
+2026-02-19 18:45:26,293 [INFO] (False, False, True, True)  ->  Count: 1688 | Frequency: 0.042200
+2026-02-19 18:45:26,293 [INFO] (False, True, False, False)  ->  Count: 2507 | Frequency: 0.062675
+2026-02-19 18:45:26,293 [INFO] (False, True, False, True)  ->  Count: 1642 | Frequency: 0.041050
+2026-02-19 18:45:26,293 [INFO] (False, True, True, False)  ->  Count: 1633 | Frequency: 0.040825
+2026-02-19 18:45:26,293 [INFO] (False, True, True, True)  ->  Count: 2498 | Frequency: 0.062450
+2026-02-19 18:45:26,293 [INFO] (True, False, False, False)  ->  Count: 2608 | Frequency: 0.065200
+2026-02-19 18:45:26,293 [INFO] (True, False, False, True)  ->  Count: 1673 | Frequency: 0.041825
+2026-02-19 18:45:26,293 [INFO] (True, False, True, False)  ->  Count: 1699 | Frequency: 0.042475
+2026-02-19 18:45:26,293 [INFO] (True, False, True, True)  ->  Count: 2499 | Frequency: 0.062475
+2026-02-19 18:45:26,293 [INFO] (True, True, False, False)  ->  Count: 1665 | Frequency: 0.041625
+2026-02-19 18:45:26,293 [INFO] (True, True, False, True)  ->  Count: 2490 | Frequency: 0.062250
+2026-02-19 18:45:26,293 [INFO] (True, True, True, False)  ->  Count: 2513 | Frequency: 0.062825
+2026-02-19 18:45:26,293 [INFO] (True, True, True, True)  ->  Count: 10000 | Frequency: 0.250000
+2026-02-19 18:45:26,293 [INFO] 
+Per-atom missing counts:
+
+2026-02-19 18:45:26,293 [INFO] Atom 0 missed -> Count: 25147 | Frequency: 0.628675
+2026-02-19 18:45:26,293 [INFO] Atom 1 missed -> Count: 24948 | Frequency: 0.623700
+2026-02-19 18:45:26,293 [INFO] Atom 2 missed -> Count: 24931 | Frequency: 0.623275
+2026-02-19 18:45:26,293 [INFO] Atom 3 missed -> Count: 24974 | Frequency: 0.624350
+2026-02-19 18:45:26,293 [INFO] 
+
+=== Processing query type: up ===
+2026-02-19 18:46:49,808 [INFO] 
+Query type: up
+2026-02-19 18:46:49,808 [INFO] Total QA pairs: 30000
+
+2026-02-19 18:46:49,808 [INFO] Missing link combinations:
+
+2026-02-19 18:46:49,808 [INFO] (False, False, True)  ->  Count: 5517 | Frequency: 0.183900
+2026-02-19 18:46:49,808 [INFO] (False, True, True)  ->  Count: 4588 | Frequency: 0.152933
+2026-02-19 18:46:49,808 [INFO] (True, False, True)  ->  Count: 6405 | Frequency: 0.213500
+2026-02-19 18:46:49,808 [INFO] (True, True, True)  ->  Count: 13490 | Frequency: 0.449667
+2026-02-19 18:46:49,808 [INFO] 
+Per-atom missing counts:
+
+2026-02-19 18:46:49,808 [INFO] Atom 0 missed -> Count: 19895 | Frequency: 0.663167
+2026-02-19 18:46:49,808 [INFO] Atom 1 missed -> Count: 18078 | Frequency: 0.602600
+2026-02-19 18:46:49,808 [INFO] Atom 2 missed -> Count: 30000 | Frequency: 1.000000
+2026-02-19 18:46:49,808 [INFO] 
+
+=== Processing query type: 2p ===
+2026-02-19 18:47:46,499 [INFO] 
+Query type: 2p
+2026-02-19 18:47:46,499 [INFO] Total QA pairs: 20000
+
+2026-02-19 18:47:46,499 [INFO] Missing link combinations:
+
+2026-02-19 18:47:46,499 [INFO] (False, True)  ->  Count: 14137 | Frequency: 0.706850
+2026-02-19 18:47:46,499 [INFO] (True, True)  ->  Count: 5863 | Frequency: 0.293150
+2026-02-19 18:47:46,499 [INFO] 
+Per-atom missing counts:
+
+2026-02-19 18:47:46,499 [INFO] Atom 0 missed -> Count: 5863 | Frequency: 0.293150
+2026-02-19 18:47:46,499 [INFO] Atom 1 missed -> Count: 20000 | Frequency: 1.000000
+2026-02-19 18:47:46,499 [INFO] 
+
+=== Processing query type: pi ===
+2026-02-19 18:50:04,270 [INFO] 
+Query type: pi
+2026-02-19 18:50:04,270 [INFO] Total QA pairs: 40000
+
+2026-02-19 18:50:04,270 [INFO] Missing link combinations:
+
+2026-02-19 18:50:04,270 [INFO] (False, False, True)  ->  Count: 851 | Frequency: 0.021275
+2026-02-19 18:50:04,270 [INFO] (False, True, False)  ->  Count: 13145 | Frequency: 0.328625
+2026-02-19 18:50:04,270 [INFO] (False, True, True)  ->  Count: 10684 | Frequency: 0.267100
+2026-02-19 18:50:04,270 [INFO] (True, False, True)  ->  Count: 2 | Frequency: 0.000050
+2026-02-19 18:50:04,270 [INFO] (True, True, False)  ->  Count: 6004 | Frequency: 0.150100
+2026-02-19 18:50:04,270 [INFO] (True, True, True)  ->  Count: 9314 | Frequency: 0.232850
+2026-02-19 18:50:04,270 [INFO] 
+Per-atom missing counts:
+
+2026-02-19 18:50:04,270 [INFO] Atom 0 missed -> Count: 15320 | Frequency: 0.383000
+2026-02-19 18:50:04,270 [INFO] Atom 1 missed -> Count: 39147 | Frequency: 0.978675
+2026-02-19 18:50:04,270 [INFO] Atom 2 missed -> Count: 20851 | Frequency: 0.521275
+2026-02-19 18:50:04,270 [INFO] 
+
+=== Processing query type: ip ===
+2026-02-19 18:51:51,378 [INFO] 
+Query type: ip
+2026-02-19 18:51:51,378 [INFO] Total QA pairs: 40000
+
+2026-02-19 18:51:51,378 [INFO] Missing link combinations:
+
+2026-02-19 18:51:51,378 [INFO] (False, False, True)  ->  Count: 13380 | Frequency: 0.334500
+2026-02-19 18:51:51,378 [INFO] (False, True, False)  ->  Count: 288 | Frequency: 0.007200
+2026-02-19 18:51:51,378 [INFO] (False, True, True)  ->  Count: 4423 | Frequency: 0.110575
+2026-02-19 18:51:51,378 [INFO] (True, False, False)  ->  Count: 513 | Frequency: 0.012825
+2026-02-19 18:51:51,378 [INFO] (True, False, True)  ->  Count: 6665 | Frequency: 0.166625
+2026-02-19 18:51:51,378 [INFO] (True, True, True)  ->  Count: 14731 | Frequency: 0.368275
+2026-02-19 18:51:51,378 [INFO] 
+Per-atom missing counts:
+
+2026-02-19 18:51:51,378 [INFO] Atom 0 missed -> Count: 21909 | Frequency: 0.547725
+2026-02-19 18:51:51,378 [INFO] Atom 1 missed -> Count: 19442 | Frequency: 0.486050
+2026-02-19 18:51:51,378 [INFO] Atom 2 missed -> Count: 39199 | Frequency: 0.979975
+2026-02-19 18:51:51,378 [INFO] 
+
+=== Processing query type: 3p ===
+2026-02-19 18:51:51,378 [INFO] Using XCQA with top-k filtering for this query type (k=2048)
+2026-02-19 18:53:12,351 [INFO] 
+Query type: 3p
+2026-02-19 18:53:12,351 [INFO] Total QA pairs: 30000
+
+2026-02-19 18:53:12,351 [INFO] Missing link combinations:
+
+2026-02-19 18:53:12,351 [INFO] (False, False, True)  ->  Count: 9356 | Frequency: 0.311867
+2026-02-19 18:53:12,351 [INFO] (False, True, False)  ->  Count: 9 | Frequency: 0.000300
+2026-02-19 18:53:12,351 [INFO] (False, True, True)  ->  Count: 6266 | Frequency: 0.208867
+2026-02-19 18:53:12,351 [INFO] (True, False, False)  ->  Count: 191 | Frequency: 0.006367
+2026-02-19 18:53:12,351 [INFO] (True, False, True)  ->  Count: 4937 | Frequency: 0.164567
+2026-02-19 18:53:12,351 [INFO] (True, True, False)  ->  Count: 136 | Frequency: 0.004533
+2026-02-19 18:53:12,351 [INFO] (True, True, True)  ->  Count: 9105 | Frequency: 0.303500
+2026-02-19 18:53:12,351 [INFO] 
+Per-atom missing counts:
+
+2026-02-19 18:53:12,351 [INFO] Atom 0 missed -> Count: 14369 | Frequency: 0.478967
+2026-02-19 18:53:12,351 [INFO] Atom 1 missed -> Count: 15516 | Frequency: 0.517200
+2026-02-19 18:53:12,351 [INFO] Atom 2 missed -> Count: 29664 | Frequency: 0.988800
+2026-02-19 18:53:12,351 [INFO] 
+
+=== Processing query type: 4p ===
+2026-02-19 18:53:12,351 [INFO] Using XCQA with top-k filtering for this query type (k=2048)
+2026-02-19 18:57:19,914 [INFO] 
+Query type: 4p
+2026-02-19 18:57:19,914 [INFO] Total QA pairs: 40000
+
+2026-02-19 18:57:19,914 [INFO] Missing link combinations:
+
+2026-02-19 18:57:19,914 [INFO] (False, False, False, True)  ->  Count: 13145 | Frequency: 0.328625
+2026-02-19 18:57:19,914 [INFO] (False, False, True, False)  ->  Count: 7 | Frequency: 0.000175
+2026-02-19 18:57:19,914 [INFO] (False, False, True, True)  ->  Count: 1804 | Frequency: 0.045100
+2026-02-19 18:57:19,915 [INFO] (False, True, False, True)  ->  Count: 1015 | Frequency: 0.025375
+2026-02-19 18:57:19,915 [INFO] (False, True, True, False)  ->  Count: 28 | Frequency: 0.000700
+2026-02-19 18:57:19,915 [INFO] (False, True, True, True)  ->  Count: 11212 | Frequency: 0.280300
+2026-02-19 18:57:19,915 [INFO] (True, False, False, False)  ->  Count: 108 | Frequency: 0.002700
+2026-02-19 18:57:19,915 [INFO] (True, False, False, True)  ->  Count: 1810 | Frequency: 0.045250
+2026-02-19 18:57:19,915 [INFO] (True, False, True, False)  ->  Count: 1 | Frequency: 0.000025
+2026-02-19 18:57:19,915 [INFO] (True, False, True, True)  ->  Count: 425 | Frequency: 0.010625
+2026-02-19 18:57:19,915 [INFO] (True, True, False, False)  ->  Count: 2 | Frequency: 0.000050
+2026-02-19 18:57:19,915 [INFO] (True, True, False, True)  ->  Count: 1458 | Frequency: 0.036450
+2026-02-19 18:57:19,915 [INFO] (True, True, True, False)  ->  Count: 5 | Frequency: 0.000125
+2026-02-19 18:57:19,915 [INFO] (True, True, True, True)  ->  Count: 8980 | Frequency: 0.224500
+2026-02-19 18:57:19,915 [INFO] 
+Per-atom missing counts:
+
+2026-02-19 18:57:19,915 [INFO] Atom 0 missed -> Count: 12789 | Frequency: 0.319725
+2026-02-19 18:57:19,915 [INFO] Atom 1 missed -> Count: 22700 | Frequency: 0.567500
+2026-02-19 18:57:19,915 [INFO] Atom 2 missed -> Count: 22462 | Frequency: 0.561550
+2026-02-19 18:57:19,915 [INFO] Atom 3 missed -> Count: 39849 | Frequency: 0.996225
