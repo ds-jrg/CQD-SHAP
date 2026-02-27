@@ -1,7 +1,7 @@
 from utils import setup_dataset_and_graphs
 from utils import load_all_queries
 from symbolic_torch import SymbolicReasoning
-from xcqa_torch import XCQA
+from xcqa_torch_stat import XCQA
 from collections import defaultdict
 from utils import check_missing_link, get_num_atoms
 from tqdm import tqdm
@@ -40,144 +40,112 @@ def report_missing_link_combinations(
     query_type,
     query_dataset_hard,
     xcqa,
-    reasoner,
     t_norm="prod",
     t_conorm="prod",
-    k=10
+    k=10,
+    reachability_threshold=0.99
 ):
     """
     For a given query_type:
-        - considers all queries
-        - considers all hard answers
-        - counts all combinations of missing links across atoms
-
+        - Counts ALL reachable missingness patterns (exact structural cases)
+        - Separately computes minimal missingness statistics
     Returns:
         {
             total_qa_pairs,
             combination_counts,
-            combination_frequencies
+            combination_frequencies,
+            minimal_missingness_counts,
+            minimal_missingness_frequencies
         }
     """
 
     queries = query_dataset_hard.get_queries(query_type)
     num_atoms = get_num_atoms(query_type)
+    coalition = [0] * num_atoms
+    # Generate all binary patterns (e.g., 2p -> [0,0], [0,1], [1,0], [1,1])
+    patterns = [
+        list(map(int, bin(i)[2:].zfill(num_atoms)))
+        for i in range(2 ** num_atoms)
+    ]
+
+    combination_counts = {tuple(pattern): 0 for pattern in patterns}
+    minimal_missingness_counts = {i: 0 for i in range(num_atoms + 1)}
 
     total_qa_pairs = 0
-    combination_counts = defaultdict(int)
-    per_atom_counts = [0] * num_atoms
 
     for query in tqdm(queries, desc=f"Processing queries ({query_type})"):
 
-        query_atoms = query.get_atoms()
         hard_answers = query.get_answer()
 
-        coalition_binary = [0] * num_atoms
-        result_xcqa = xcqa.query_execution(
-            query,
-            k=k,
-            coalition=coalition_binary,
-            t_norm=t_norm,
-            t_conorm=t_conorm
-        )
+        # Execute query under every pattern once per query
+        patterns_executions = [
+            xcqa.query_execution(
+                query,
+                k=k,
+                coalition=coalition,
+                t_norm=t_norm,
+                t_conorm=t_conorm,
+                pattern = pattern
+            )
+            for pattern in patterns
+        ]
 
-        for hard_answer_idx in tqdm(
-            hard_answers,
-            desc="  Hard answers",
-            leave=False
-        ):
-
-            if hard_answer_idx not in result_xcqa.index:
-                continue
-
-            hard_answer = result_xcqa.loc[hard_answer_idx]
-
-            missing_pattern = []
-
-            for idx, atom in query_atoms.items():
-
-                # -------- Resolve head / relation / tail -------- #
-
-                if query_type in ['2i', '3i', '4i', '2u']:
-                    head = atom['head']
-                    relation = atom['relation']
-                    tail = hard_answer_idx
-
-                else:
-                    # HEAD
-                    if isinstance(atom['head'], int):
-                        head = atom['head']
-                    elif isinstance(atom['head'], str) and atom['head'].startswith('V'):
-                        variable_number = int(atom['head'][1:])
-                        head = hard_answer[f'variable_{variable_number}']
-                    else:
-                        raise ValueError(f"Unexpected head: {atom['head']}")
-
-                    # RELATION
-                    if isinstance(atom['relation'], int):
-                        relation = atom['relation']
-                    else:
-                        raise ValueError(f"Unexpected relation: {atom['relation']}")
-
-                    # TAIL
-                    if isinstance(atom['tail'], int):
-                        tail = atom['tail']
-                    elif isinstance(atom['tail'], str) and atom['tail'].startswith('V'):
-                        variable_number = int(atom['tail'][1:])
-
-                        if query_type in ['ip', 'pi', 'up']:
-                            limit = num_atoms - 2
-                        else:
-                            limit = num_atoms - 1
-
-                        if variable_number == limit:
-                            tail = hard_answer_idx
-                        else:
-                            tail = hard_answer[f'variable_{variable_number}']
-                    else:
-                        raise ValueError(f"Unexpected tail: {atom['tail']}")
-
-                head = int(head)
-                relation = int(relation)
-                tail = int(tail)
-
-                is_missed = check_missing_link(reasoner, head, relation, tail)
-                is_missed = bool(is_missed)
-                missing_pattern.append(is_missed)
-
-                if is_missed:
-                    per_atom_counts[idx] += 1
-
-            # Convert to tuple so it can be used as dict key
-            missing_pattern = tuple(missing_pattern)
-
-            combination_counts[missing_pattern] += 1
+        for hard_answer in hard_answers:
             total_qa_pairs += 1
 
-    # -------- Reporting -------- #
+            reachable_patterns = []
 
-    logging.info(f"\nQuery type: {query_type}")
-    logging.info(f"Total QA pairs: {total_qa_pairs}\n")
+            for pattern, execution in zip(patterns, patterns_executions):
+                if execution.loc[hard_answer, "final_score"] > reachability_threshold:
+                    reachable_patterns.append(pattern)
 
-    logging.info("Missing link combinations:\n")
+            if not reachable_patterns:
+                continue
+
+            # ✅ Compute minimal missingness
+            minimal_missingness = min(sum(p) for p in reachable_patterns)
+            minimal_missingness_counts[minimal_missingness] += 1
+
+            # ✅ Count ONLY patterns at minimal level
+            for pattern in reachable_patterns:
+                if sum(pattern) == minimal_missingness:
+                    combination_counts[tuple(pattern)] += 1
+
+    # Frequencies
+    combination_frequencies = {
+        pattern: count / total_qa_pairs if total_qa_pairs > 0 else 0.0
+        for pattern, count in combination_counts.items()
+    }
+
+    minimal_missingness_frequencies = {
+        m: count / total_qa_pairs if total_qa_pairs > 0 else 0.0
+        for m, count in minimal_missingness_counts.items()
+    }
+
+    # Logging
+    logging.info(f"\nTotal QA pairs: {total_qa_pairs}\n")
+
+    logging.info("Exact Minimal Missingness Pattern Counts:")
     for pattern, count in sorted(combination_counts.items()):
-        freq = count / total_qa_pairs if total_qa_pairs > 0 else 0.0
-        logging.info(f"{pattern}  ->  Count: {count} | Frequency: {freq:.6f}")
-    logging.info("\nPer-atom missing counts:\n")
+        if count > 0:
+            logging.info(
+                f"  Pattern {pattern}: {count} "
+                f"({combination_frequencies[pattern]:.6f})"
+            )
 
-    for atom_idx in range(num_atoms):
-        count = per_atom_counts[atom_idx]
-        freq = count / total_qa_pairs if total_qa_pairs > 0 else 0.0
+    logging.info("\nMinimal Missingness Distribution:")
+    for m, count in sorted(minimal_missingness_counts.items()):
         logging.info(
-            f"Atom {atom_idx} missed -> Count: {count} | Frequency: {freq:.6f}"
+            f"  Missingness {m}: {count} "
+            f"({minimal_missingness_frequencies[m]:.6f})"
         )
+
     return {
-        "query_type": query_type,
         "total_qa_pairs": total_qa_pairs,
-        "combination_counts": dict(combination_counts),
-        "combination_frequencies": {
-            k: v / total_qa_pairs if total_qa_pairs > 0 else 0.0
-            for k, v in combination_counts.items()
-        }
+        "combination_counts": combination_counts,
+        "combination_frequencies": combination_frequencies,
+        "minimal_missingness_counts": minimal_missingness_counts,
+        "minimal_missingness_frequencies": minimal_missingness_frequencies
     }
 
 if __name__ == "__main__":
@@ -241,8 +209,9 @@ if __name__ == "__main__":
 
     reasoner = SymbolicReasoning(graph_valid if args.split == "test" else graph_train, logging=False, gpu=False)
     reasoner_test = SymbolicReasoning(graph_test if args.split == "test" else graph_valid, logging=False, gpu=False)
-    xcqa = XCQA(symbolic=reasoner, dataset=dataset, logging=False, model_path=args.model_path, normalize=args.normalize, use_topk=args.use_topk)
-    xcqa_topk = XCQA(symbolic=reasoner, dataset=dataset, logging=False, model_path=args.model_path, normalize=args.normalize, use_topk=True)
+    xcqa = XCQA(reasoner=reasoner, reasoner_test=reasoner_test,dataset=dataset, logging=False, model_path=args.model_path, normalize=args.normalize, use_topk=args.use_topk)
+    xcqa_topk = XCQA(reasoner=reasoner, reasoner_test=reasoner_test, dataset=dataset, logging=False, model_path=args.model_path, normalize=args.normalize, use_topk=True)
+    
     logging.info("XCQA model is initialized (normalize={})".format(args.normalize))
 
     if args.query_type:
@@ -261,5 +230,4 @@ if __name__ == "__main__":
         result = report_missing_link_combinations(
             query_type=query_type,
             query_dataset_hard=query_dataset_hard,
-            xcqa=xcqa_choice,
-            reasoner=reasoner)
+            xcqa=xcqa_choice)
